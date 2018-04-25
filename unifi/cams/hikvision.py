@@ -40,7 +40,7 @@ class HikvisionCam(object):
     def change_video_settings(self, options):
         tilt = (900*int(options['brightness']))/100
         pan = (3600*(100-int(options['contrast'])))/100
-        zoom = int(options['hue'])
+        zoom = (40*int(options['hue']))/100
         req = """<PTZData>
 <AbsoluteHigh>
 <elevation> {} </elevation>
