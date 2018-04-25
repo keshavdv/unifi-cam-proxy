@@ -1,0 +1,6 @@
+*.pyc
+build
+dist
+*.egg-info
+venv
+client.pem
