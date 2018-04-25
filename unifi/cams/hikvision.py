@@ -40,17 +40,18 @@ class HikvisionCam(object):
     def change_video_settings(self, options):
         tilt = (900*int(options['brightness']))/100
         pan = (3600*(100-int(options['contrast'])))/100
+        zoom = int(options['hue'])
         req = """<PTZData>
 <AbsoluteHigh>
 <elevation> {} </elevation>
 <azimuth> {} </azimuth>
-<absoluteZoom> 0 </absoluteZoom>
+<absoluteZoom> {} </absoluteZoom>
 </AbsoluteHigh>
 </PTZData>
-        """.format(tilt, pan)
+        """.format(tilt, pan, zoom)
         uri = "http://{}/ISAPI/PTZCtrl/channels/1/absolute".format(self.args.source)
         requests.put(uri, auth=HTTPDigestAuth(self.args.username, self.args.password), data=req)
-        self.logger.info("Moving to %s:%s", pan, tilt)
+        self.logger.info("Moving to %s:%s:%s", pan, tilt, zoom)
         pass
 
     def start_video_stream(self, stream_name, options):
