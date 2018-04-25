@@ -38,7 +38,7 @@ class HikvisionCam(object):
         return "{}/screen.jpg".format(self.dir)
 
     def change_video_settings(self, options):
-        tilt = (3600*int(options['brightness']))/100 - 900
+        tilt = (900*int(options['brightness']))/100
         pan = (3600*int(options['contrast']))/100
         req = """<PTZData>
 <AbsoluteHigh>
