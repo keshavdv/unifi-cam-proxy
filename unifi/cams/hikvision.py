@@ -60,7 +60,7 @@ class HikvisionCam(object):
             self.args.source,
         )
 
-        cmd = 'ffmpeg -y -i "{}" -vcodec copy -c:a aac -metadata streamname={} -f flv tcp://{}:6666/'.format(
+        cmd = 'ffmpeg -y -i "{}" -vcodec copy -strict -2 -c:a aac -metadata streamname={} -f flv tcp://{}:6666/'.format(
             vid_src,
             stream_name,
             self.args.host,

@@ -1,1 +1,4 @@
+coloredlogs~=9.0
 ffmpeg-python~=0.1.10
+requests~=2.18.4
+websocket-client~=0.47.0
