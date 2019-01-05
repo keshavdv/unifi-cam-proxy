@@ -64,7 +64,7 @@ class Core(object):
                 "name": self.name,
                 "protocolVersion": 67,
                 "rebootTimeoutSec": 30,
-                "semver": "v4.2.59",
+                "semver": "v4.4.8",
                 "totalLoad": 0.5474,
                 "upgradeTimeoutSec": 150,
                 "uptime": self.get_uptime()
@@ -143,13 +143,20 @@ class Core(object):
     def process_video_settings(self, msg):
         # self.cam.set_video_settings(msg['payload'])
         stream = ""
+        vid_dst = {
+            'video1': ['file:///dev/null'],
+            'video2': ['file:///dev/null'],
+            'video3': ['file:///dev/null'],
+        }
         if msg['payload'] is not None:
-            for _, v in msg['payload']['video'].items():
+
+            for k, v in msg['payload']['video'].items():
                 if v:
                     if 'avSerializer' in v:
+                        vid_dst[k] = v['avSerializer']['destinations']
                         if 'parameters' in v['avSerializer']:
                             stream = v['avSerializer']['parameters']['streamName']
-                            self.cam.start_video_stream(stream, {})
+                            self.cam.start_video_stream(stream, k)
 
         return {
           	"from": "ubnt_avclient",
@@ -212,7 +219,7 @@ class Core(object):
           				"M": 1,
           				"N": 30,
           				"avSerializer": {
-          					"destinations": ["file:///dev/null"],
+          					"destinations": vid_dst['video1'],
           					"parameters": {
           						"audioId": 1000,
           						"enableTimestampsOverlapAvoidance": False,
@@ -252,7 +259,7 @@ class Core(object):
           				"M": 1,
           				"N": 30,
           				"avSerializer": {
-          					"destinations": ["tcp://192.168.103.185:6666?retryInterval=1&connectTimeout=30"],
+          					"destinations": vid_dst['video2'],
           					"parameters": {
           						"audioId": None,
           						"streamName": stream,
@@ -292,7 +299,7 @@ class Core(object):
           				"M": 1,
           				"N": 30,
           				"avSerializer": {
-          					"destinations": ["file:///dev/null"],
+          					"destinations": vid_dst['video3'],
           					"parameters": {
           						"audioId": 1000,
           						"enableTimestampsOverlapAvoidance": False,
@@ -536,7 +543,33 @@ class Core(object):
         while not os.path.isfile(path):
             time.sleep(.1)
         files = {'payload': (msg['payload']['filename'], open(path, 'rb'))}
-        r = requests.post(msg['payload']['uri'], files=files, data=msg['payload']['formFields'], cert=self.cert, verify=False)
+        requests.post(msg['payload']['uri'], files=files, data=msg['payload']['formFields'], cert=self.cert, verify=False)
+
+    def process_time(self, msg):
+        return {
+
+            "from": "ubnt_avclient",
+            "functionName": "ubnt_avclient_paramAgreement",
+            "inResponseTo": msg['messageId'],
+            "messageId": self.gen_msg_id(),
+            "payload": {
+                "monotonicMs": self.get_uptime(),
+                "wallMs": int(round(time.time() * 1000)),
+            },
+            "responseExpected": False,
+            "to": "UniFiVideo",
+        }
+
+    def process_username_password(self, msg):
+        return {
+            "from": "ubnt_avclient",
+            "functionName": "UpdateUsernamePassword",
+            "inResponseTo": msg['messageId'],
+            "messageId": self.gen_msg_id(),
+            "payload": {},
+            "responseExpected": False,
+            "to": "UniFiVideo",
+        }
 
     def get_uptime(self):
         return time.time() - self.init_time
@@ -551,7 +584,7 @@ class Core(object):
         self.logger.info("Processing [%s] message", m['functionName'])
         self.logger.debug("Message contents: %s", m)
 
-        if m['responseExpected'] == False and m['functionName'] != "GetRequest":
+        if m['responseExpected'] == False and m['functionName'] not in  ["GetRequest", "UpdateFirmwareRequest"]:
             return
 
         res = None
@@ -559,6 +592,8 @@ class Core(object):
             pass
         elif m['functionName'] == "ubnt_avclient_timeSync":
             pass
+        elif m['functionName'] == "ubnt_avclient_time":
+            res = self.process_time(m)
         elif m['functionName'] == "ubnt_avclient_paramAgreement":
             res = self.process_param_agreement(m)
         elif m['functionName'] == "ResetIspSettings":
@@ -579,9 +614,15 @@ class Core(object):
             res = self.process_analytics_settings(m)
         elif m['functionName'] == "GetRequest":
             self.process_snapshot_request(m)
+        elif m['functionName'] == "UpdateUsernamePassword":
+            res = self.process_username_password(m)
+        elif m['functionName'] == "UpdateFirmwareRequest":
+            return True
 
         if res is not None:
             self.send(ws, res)
+
+        return False
 
     def run(self):
         uri = "wss://{}:7442/camera/1.0/ws?token={}".format(self.host, self.token)
@@ -593,16 +634,20 @@ class Core(object):
         self.logger.info("Creating ws connection to %s", uri)
         ws = websocket.create_connection(uri, sslopt=ssl_opts, header=headers)
 
-        self.init_adoption(ws)
-
         while True:
-            opcode, data = self.recv(ws)
-            msg = None
-            if opcode in OPCODE_DATA:
-                msg = data
+            self.init_adoption(ws)
 
-            if msg is not None:
-                self.process(ws, msg)
+            while True:
+                opcode, data = self.recv(ws)
+                msg = None
+                if opcode in OPCODE_DATA:
+                    msg = data
 
-            if opcode == websocket.ABNF.OPCODE_CLOSE:
-                break
+                if msg is not None:
+                    reconnect = self.process(ws, msg)
+                    if reconnect:
+                        self.logger.info("Reconnecting...")
+                        break
+
+                if opcode == websocket.ABNF.OPCODE_CLOSE:
+                    break
