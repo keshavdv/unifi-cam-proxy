@@ -632,9 +632,9 @@ class Core(object):
         }
         headers = {'camera-mac': self.mac}
         self.logger.info("Creating ws connection to %s", uri)
-        ws = websocket.create_connection(uri, sslopt=ssl_opts, header=headers)
 
         while True:
+            ws = websocket.create_connection(uri, sslopt=ssl_opts, header=headers)
             self.init_adoption(ws)
 
             while True:
