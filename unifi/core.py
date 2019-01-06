@@ -55,7 +55,7 @@ class Core(object):
                 "adoptionCode": self.token,
                 "connectionHost": self.host,
                 "connectionSecurePort": 7442,
-                "fwVersion": "UVC.A5S.v4.2.59.67.ddb1280.180405.2125",
+                "fwVersion": "UVC.S2L.v4.4.8.67.M_e4488fa.180911.1127",
                 "hwrev": 19,
                 "idleTime": 191.96,
                 "ip": self.cam_ip,
