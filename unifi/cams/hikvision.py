@@ -39,7 +39,6 @@ class HikvisionCam(UnifiCamBase):
         shutil.copyfileobj(resp.raw, open(img_file, "wb"))
         return img_file
 
-
     def change_video_settings(self, options):
         tilt = int((900 * int(options["brightness"])) / 100)
         pan = int((3600 * int(options["contrast"])) / 100)

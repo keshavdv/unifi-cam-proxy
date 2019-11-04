@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import subprocess
 import tempfile
 
@@ -15,7 +16,7 @@ class RTSPCam(UnifiCamBase):
         parser.add_argument(
             "--ffmpeg-args",
             "-f",
-            default="-vcodec copy -acodec copy",
+            default="-vcodec copy -strict -2 -c:a aac",
             help="Transcoding args for `ffmpeg -i <src> <args> <dst>`",
         )
 
@@ -38,10 +39,14 @@ class RTSPCam(UnifiCamBase):
         return "{}/screen.jpg".format(self.dir)
 
     def start_video_stream(self, stream_name, options):
-        cmd = 'ffmpeg -y -re -i "{}" {} -metadata streamname={} -f flv - | {} -m unifi.clock_sync | nc {} 6666'.format(
-            self.args.source, self.args.ffmpeg_args, stream_name, self.args.host
+        cmd = 'ffmpeg -y -f lavfi -i aevalsrc=0 -i "{}" {} -metadata streamname={} -f flv - | {} -m unifi.clock_sync | nc {} 6666'.format(
+            self.args.source,
+            self.args.ffmpeg_args,
+            stream_name,
+            sys.executable,
+            self.args.host,
         )
-        self.logger.info("Spwaning ffmpeg (%s): %s", stream_name, cmd)
+        self.logger.info("Spawning ffmpeg (%s): %s", stream_name, cmd)
         if (
             stream_name not in self.streams
             or self.streams[stream_name].poll() is not None
