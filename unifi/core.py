@@ -24,6 +24,7 @@ class Core(object):
         self.init_time = time.time()
         self.pulse_interval = 0
         self.streams = {}
+        self.version = "UVC.S2L.v4.14.14.67.037e886.190630.1017"
 
     def gen_msg_id(self):
         self._msg_id += 1
@@ -62,7 +63,7 @@ class Core(object):
                     "adoptionCode": self.token,
                     "connectionHost": self.host,
                     "connectionSecurePort": 7442,
-                    "fwVersion": "UVC.S2L.v4.14.14.67.037e886.190630.1017",
+                    "fwVersion": self.version,
                     "hwrev": 19,
                     "idleTime": 191.96,
                     "ip": self.cam_ip,
@@ -91,6 +92,20 @@ class Core(object):
             "responseExpected": False,
             "to": "UniFiVideo",
         }
+
+    def process_upgrade(self, msg):
+        url = msg["payload"]["uri"]
+        headers = {"Range": "bytes=0-100"}
+        r = requests.get(url, headers=headers, verify=False)
+
+        # Parse the new version string from the upgrade binary
+        version = ""
+        for i in range(0, 50):
+            b = r.content[4 + i]
+            if b != b"\x00":
+                version += b
+        self.version = version
+        return
 
     def process_isp_settings(self, msg):
         return {
@@ -678,6 +693,7 @@ class Core(object):
         elif m["functionName"] == "UpdateUsernamePassword":
             res = self.process_username_password(m)
         elif m["functionName"] == "UpdateFirmwareRequest":
+            res = self.process_upgrade(m)
             return True
 
         if res is not None:
