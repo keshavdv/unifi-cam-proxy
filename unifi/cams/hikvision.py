@@ -1,6 +1,9 @@
 import logging
 import os
 import subprocess
+import sys
+import shutil
+
 import tempfile
 import requests
 from requests.auth import HTTPDigestAuth
@@ -21,27 +24,26 @@ class HikvisionCam(UnifiCamBase):
         self.logger = logger
         self.args = args
         self.dir = tempfile.mkdtemp()
-        self.logger.info(self.dir)
-        vid_src = "rtsp://{}:{}@{}:554/Streaming/Channels/1/".format(
-            self.args.username, self.args.password, self.args.source
-        )
-        cmd = 'ffmpeg -y -f lavfi -i aevalsrc=0 -i "{}" -vf fps=1 -update 1 {}/screen.jpg'.format(
-            vid_src, self.dir
-        )
-        self.logger.info(cmd)
-        self.streams = {
-            "mjpg": subprocess.Popen(
-                cmd, stdout=FNULL, stderr=subprocess.STDOUT, shell=True
-            )
-        }
+        self.streams = {}
 
     def get_snapshot(self):
-        return "{}/screen.jpg".format(self.dir)
+        img_file = "{}/screen.jpg".format(self.dir)
+        uri = "http://{}/ISAPI/Streaming/channels/101/picture?videoResolutionWidth=1280&videoResolutionHeight=720".format(
+            self.args.source
+        )
+        resp = requests.get(
+            uri,
+            auth=HTTPDigestAuth(self.args.username, self.args.password),
+            stream=True,
+        )
+        resp.raw.decode_content = True
+        shutil.copyfileobj(resp.raw, open(img_file, "wb"))
+        return img_file
 
     def change_video_settings(self, options):
-        tilt = (900 * int(options["brightness"])) / 100
-        pan = (3600 * int(options["contrast"])) / 100
-        zoom = (40 * int(options["hue"])) / 100
+        tilt = int((900 * int(options["brightness"])) / 100)
+        pan = int((3600 * int(options["contrast"])) / 100)
+        zoom = int((40 * int(options["hue"])) / 100)
         req = """<PTZData>
 <AbsoluteHigh>
 <elevation> {} </elevation>
@@ -68,10 +70,10 @@ class HikvisionCam(UnifiCamBase):
             self.args.username, self.args.password, self.args.source, channel
         )
 
-        cmd = 'ffmpeg -y -f lavfi -i aevalsrc=0 -i "{}" -vcodec copy -strict -2 -c:a aac -metadata streamname={} -f flv tcp://{}:6666/'.format(
-            vid_src, stream_name, self.args.host
+        cmd = 'ffmpeg -y -f lavfi -i aevalsrc=0 -i "{}" -vcodec copy -use_wallclock_as_timestamps 1 -strict -2 -c:a aac -metadata streamname={} -f flv - | {} -m unifi.clock_sync | nc {} 6666'.format(
+            vid_src, stream_name, sys.executable, self.args.host
         )
-        self.logger.info("Spwaning ffmpeg: %s", cmd)
+        self.logger.info("Spawning ffmpeg: %s", cmd)
         if (
             stream_name not in self.streams
             or self.streams[stream_name].poll() is not None

@@ -38,11 +38,10 @@ class RTSPCam(UnifiCamBase):
         return "{}/screen.jpg".format(self.dir)
 
     def start_video_stream(self, stream_name, options):
-        cmd = 'ffmpeg -y -re -i "{}" {} -metadata streamname={} -f flv tcp://{}:6666/'.format(
+        cmd = 'ffmpeg -y -re -i "{}" {} -metadata streamname={} -f flv - | {} -m unifi.clock_sync | nc {} 6666'.format(
             self.args.source, self.args.ffmpeg_args, stream_name, self.args.host
         )
         self.logger.info("Spwaning ffmpeg (%s): %s", stream_name, cmd)
-        # return
         if (
             stream_name not in self.streams
             or self.streams[stream_name].poll() is not None

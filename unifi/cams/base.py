@@ -1,7 +1,7 @@
 import logging
 
-class UnifiCamBase(object):
 
+class UnifiCamBase(object):
     def __init__(self, args, logger=None):
         self.args = args
         if logger is None:
@@ -17,7 +17,3 @@ class UnifiCamBase(object):
 
     def start_video_stream(self, stream_name, options):
         raise NotImplementedError("You need to write this!")
-
-    def _start(self):
-        self.logger.info('test')
-        print(self.args)

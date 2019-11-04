@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
 from distutils.core import setup
-
-execfile('package/version.py')
+from unifi import version
 
 setup(
     name = 'unifi-cam-proxy',
-    version = __version__,
+    version = version.__version__,
     description = 'Unifi NVR-compatible camera proxy',
     long_description = open('README.rst').read() + '\n\n' + open('HISTORY.rst').read(),
     author = 'Keshav Varma',
