@@ -74,7 +74,6 @@ class HikvisionCam(UnifiCamBase):
         self.cam.PTZCtrl.channels[1].absolute(
             method="put", data=xmltodict.unparse(req, pretty=True)
         )
-        return self.get_video_settings()
 
     def start_video_stream(self, stream_name, video_mode):
         channel = 1

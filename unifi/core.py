@@ -532,7 +532,7 @@ class Core(object):
         }
 
     def process_change_isp_settings(self, msg):
-        response = {
+        payload = {
             "aeMode": "auto",
             "aeTargetPercent": 50,
             "aggressiveAntiFlicker": 0,
@@ -585,14 +585,15 @@ class Core(object):
         }
 
         if msg["payload"]:
-            response.update(self.cam.change_video_settings(msg["payload"]))
+            self.cam.change_video_settings(msg["payload"])
 
+        payload.update(self.cam.get_video_settings())
         return {
             "from": "ubnt_avclient",
             "to": "UniFiVideo",
             "responseExpected": False,
             "functionName": "ChangeIspSettings",
-            "payload": response,
+            "payload": payload,
             "messageId": self.gen_msg_id(),
             "inResponseTo": msg["messageId"],
         }
