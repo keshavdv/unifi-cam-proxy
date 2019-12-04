@@ -2,3 +2,5 @@ coloredlogs~=9.0
 requests>=2.20.0
 websocket-client~=0.47.0
 flvlib~=0.1.13
+hikvisionapi>=0.2.1
+xmltodict>=0.12.0
