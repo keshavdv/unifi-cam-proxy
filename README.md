@@ -30,11 +30,14 @@ Usage
 
 In order to use this, you must own at least one UniFi camera in order to obtain a valid client certificate (Found at `/var/etc/persistent/server.pem` via SSH).
 
-RTSP stream:
+```
+pip install unifi-cam-proxy
+scp ubnt@<your-unifi-cam>:/var/etc/persistent/server.pem client.pem
+# RTSP stream
+unifi-cam-proxy --host <NVR IP> --cert client.pem --token <Adoption token> rtsp -s rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_175k.mov
+```
 
-```
-unifi-cam-proxy --host <NVR IP> --cert client.pem --token uQfUPROZxbkPszvR rtsp -s rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_175k.mov
-```
+
 Hikvision PTZ (Hikvision DS-2DE3304W-DE):
 
 ```

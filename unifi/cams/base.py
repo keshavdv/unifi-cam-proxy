@@ -12,7 +12,7 @@ class UnifiCamBase(object):
     def get_snapshot(self):
         raise NotImplementedError("You need to write this!")
 
-    def get_video_settings(self, options):
+    def get_video_settings(self):
         return {}
 
     def change_video_settings(self, options):

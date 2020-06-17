@@ -5,3 +5,5 @@ dist
 venv
 client.pem
 run/
+MANIFEST
+MANIFEST.in
