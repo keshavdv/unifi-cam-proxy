@@ -43,3 +43,12 @@ Hikvision PTZ (Hikvision DS-2DE3304W-DE):
 ```
 unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> hikvision -u <username> -p <password>
 ```
+
+Multiple Cameras
+----
+To deploy multiple cameras, run multiple instances of the proxy, taking care to specify different MAC addressess:
+
+```
+unifi-cam-proxy --host <NVR IP> --mac 'AA:BB:CC:00:11:22' --cert client.pem --token <Adoption token> rtsp -s rtsp://camera1
+unifi-cam-proxy --host <NVR IP> --mac 'AA:BB:CC:33:44:55' --cert client.pem --token <Adoption token> rtsp -s rtsp://camera2
+```
