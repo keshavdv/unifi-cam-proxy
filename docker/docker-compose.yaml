@@ -1,0 +1,13 @@
+version: '3.7'
+services:
+    unifi-cam-proxy:
+      image: keshavdv/unifi-cam-proxy
+      volumes:
+        - type: bind
+          source: ./client.pem
+          target: /client.pem
+      environment:
+        - "HOST=192.168.103.180"
+        - "TOKEN=UojOceUtnvtaxpiY"
+        - "RTSP_URL=rtsp://freja.hiof.no:1935/rtplive/definst/hessdalen03.stream"
+      restart: always

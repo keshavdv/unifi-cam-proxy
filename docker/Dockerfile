@@ -1,6 +1,8 @@
 FROM python:2.7
 RUN apt-get -y update && apt-get install -y \
   ffmpeg \
-  netcat
+  netcat-openbsd
 RUN pip install unifi-cam-proxy
-ENTRYPOINT ["unifi-cam-proxy"]
+COPY ./entrypoint.sh /
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["unifi-cam-proxy"]
