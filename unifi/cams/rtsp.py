@@ -19,14 +19,22 @@ class RTSPCam(UnifiCamBase):
             default="-vcodec copy -strict -2 -c:a aac",
             help="Transcoding args for `ffmpeg -i <src> <args> <dst>`",
         )
+        parser.add_argument(
+            "--rtsp-transport",
+            default="tcp",
+            choices=['tcp', 'udp', 'http', 'udp_multicast'],
+            help="RTSP transport protocol used by stream",
+        )
 
     def __init__(self, args, logger=None):
         self.logger = logger
         self.args = args
         self.dir = tempfile.mkdtemp()
         self.logger.info(self.dir)
-        cmd = 'ffmpeg -y -re -i "{}" -vf fps=1 -update 1 {}/screen.jpg'.format(
-            self.args.source, self.dir
+        cmd = 'ffmpeg -y -re -rtsp_transport {} -i "{}" -vf fps=1 -update 1 {}/screen.jpg'.format(
+            self.args.rtsp_transport,
+            self.args.source,
+            self.dir,
         )
         self.logger.info(cmd)
         self.streams = {
@@ -39,7 +47,8 @@ class RTSPCam(UnifiCamBase):
         return "{}/screen.jpg".format(self.dir)
 
     def start_video_stream(self, stream_name, options):
-        cmd = 'ffmpeg -y -f lavfi -i aevalsrc=0 -i "{}" {} -metadata streamname={} -f flv - | {} -m unifi.clock_sync | nc {} 6666'.format(
+        cmd = 'ffmpeg -y -f lavfi -i aevalsrc=0 -rtsp_transport {} -i "{}" {} -metadata streamname={} -f flv - | {} -m unifi.clock_sync | nc {} 6666'.format(
+            self.args.rtsp_transport,
             self.args.source,
             self.args.ffmpeg_args,
             stream_name,
