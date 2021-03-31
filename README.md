@@ -1,10 +1,12 @@
 UniFi Camera Proxy
 ==================
 
+## Note: This does not currently work with UniFi Protect (UDMP/UNVR) devices, only the older UniFi Video installations
+
 About
 -----
 
-This enables using non-Ubiquiti cameras within the UniFi NVR software. This is
+This enables using non-Ubiquiti cameras within the UniFi Video software. This is
 particularly useful to view existing RTSP-enabled cameras in the same UI and
 mobile app.
 
@@ -22,7 +24,7 @@ Installation
 Dependencies:
 
 * ffmpeg and netcat must be installed
-* Python2.7 only
+* Python2.7 only (due to flvlib dependency)
 
 
 Usage
