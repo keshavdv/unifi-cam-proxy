@@ -24,7 +24,7 @@ class Core(object):
         self.init_time = time.time()
         self.pulse_interval = 0
         self.streams = {}
-        self.version = "UVC.S2L.v4.14.14.67.037e886.190630.1017"
+        self.version = "UVC.S2L.v4.30.0.67.e596d3f.200918.0639"
 
     def gen_msg_id(self):
         self._msg_id += 1
@@ -76,6 +76,7 @@ class Core(object):
                     "totalLoad": 0.5474,
                     "upgradeTimeoutSec": 150,
                     "uptime": self.get_uptime(),
+                    "features": {},
                 },
                 "messageId": self.gen_msg_id(),
                 "inResponseTo": 0,
@@ -88,7 +89,7 @@ class Core(object):
             "functionName": "ubnt_avclient_paramAgreement",
             "inResponseTo": msg["messageId"],
             "messageId": self.gen_msg_id(),
-            "payload": {"authToken": self.token},
+            "payload": {"authToken": self.token, "features": {}},
             "responseExpected": False,
             "to": "UniFiVideo",
         }
@@ -171,7 +172,7 @@ class Core(object):
             "video3": ["file:///dev/null"],
         }
 
-        if msg["payload"] is not None:
+        if msg["payload"] is not None and "video" in msg["payload"]:
             for k, v in msg["payload"]["video"].items():
                 if v:
                     if "avSerializer" in v:
@@ -436,7 +437,6 @@ class Core(object):
             "functionName": "ChangeDeviceSettings",
             "payload": {
                 "name": self.name,
-                "region": msg["payload"]["region"],
                 "timezone": "PST8PDT,M3.2.0,M11.1.0",
             },
             "messageId": self.gen_msg_id(),
@@ -621,7 +621,7 @@ class Core(object):
         requests.post(
             msg["payload"]["uri"],
             files=files,
-            data=msg["payload"]["formFields"],
+            data=msg["payload"]["formFields"] if "formFields" in msg["payload"] else None,
             cert=self.cert,
             verify=False,
         )
@@ -635,6 +635,7 @@ class Core(object):
             "payload": {
                 "monotonicMs": self.get_uptime(),
                 "wallMs": int(round(time.time() * 1000)),
+                "features": {},
             },
             "responseExpected": False,
             "to": "UniFiVideo",
@@ -663,7 +664,7 @@ class Core(object):
         self.logger.info("Processing [%s] message", m["functionName"])
         self.logger.debug("Message contents: %s", m)
 
-        if m["responseExpected"] == False and m["functionName"] not in [
+        if "responseExpected" not in m or m["responseExpected"] == False and m["functionName"] not in [
             "GetRequest",
             "UpdateFirmwareRequest",
         ]:
@@ -707,36 +708,9 @@ class Core(object):
 
         return False
 
-    def send_pulse(self, ws):
-        while True:
-            if self.pulse_interval is not 0:
-                time.sleep(self.pulse_interval)
-                res = {
-                    "from": "ubnt_avclient",
-                    "to": "UniFiVideo",
-                    "responseExpected": False,
-                    "functionName": "EventAnalytics",
-                    "payload": {
-                        "clockBestMonotonic": 0,
-                        "clockBestWall": 0,
-                        "clockMonotonic": int(round(self.get_uptime())),
-                        "clockWall": int(round(time.time() * 1000)),
-                        "edgeType": "unknown",
-                        "eventId": 9223372036854775807,
-                        "eventType": "pulse",
-                        "levels": {"0": 0},
-                        "motionHeatmap": "",
-                        "motionSnapshot": "",
-                    },
-                    "messageId": self.gen_msg_id(),
-                    "inResponseTo": 0,
-                }
-                self.logger.info("Sending pulse...")
-                self.send(ws, res)
-            time.sleep(0.1)
-
     def run(self):
-        uri = "wss://{}:7442/camera/1.0/ws?token={}".format(self.host, self.token)
+        # uri = "wss://{}:7442/camera/1.0/ws?token={}".format(self.host, self.token)
+        uri = "wss://{}:7442/camera/1.0/ws".format(self.host)
         ssl_opts = {"cert_reqs": ssl.CERT_NONE, "certfile": self.cert}
         headers = {"camera-mac": self.mac}
         self.logger.info("Creating ws connection to %s", uri)
@@ -745,9 +719,6 @@ class Core(object):
             ws = websocket.create_connection(uri, sslopt=ssl_opts, header=headers)
             self.init_adoption(ws)
 
-            self.pulse_thread = threading.Thread(target=self.send_pulse, args=(ws,))
-            self.pulse_thread.daemon = True
-            self.pulse_thread.start()
 
             while True:
                 opcode, data = self.recv(ws)

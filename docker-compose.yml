@@ -27,3 +27,24 @@ services:
 # Known to happen on ubuntu, synology, and other platforms.
     security_opt:
       - apparmor:unconfined
+  unifi-protect:
+    container_name: unifi-protect
+    ports:
+        - '7080:7080'
+        - '7442:7442'
+        - '7443:7443'
+        - '7444:7444'
+        - '7447:7447'
+        - '7550:7550'
+    volumes:
+        - './run/protect/data:/srv/unifi-protect'
+        - './run/protect/db:/var/lib/postgresql/10/main'
+        - './run/protect/db_config:/etc/postgresql/10/main'
+        - './run/protect/config.json:/usr/share/unifi-protect/app/config/config.json'
+    environment:
+        - TZ=America/Los_Angeles
+        - PUID=999
+        - PGID=999
+        - PUID_POSTGRES=102
+        - PGID_POSTGRES=104
+    image: fryfrog/unifi-protect

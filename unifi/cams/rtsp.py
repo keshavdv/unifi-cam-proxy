@@ -47,7 +47,7 @@ class RTSPCam(UnifiCamBase):
         return "{}/screen.jpg".format(self.dir)
 
     def start_video_stream(self, stream_name, options):
-        cmd = 'ffmpeg -y -f lavfi -i aevalsrc=0 -rtsp_transport {} -i "{}" {} -metadata streamname={} -f flv - | {} -m unifi.clock_sync | nc {} 6666'.format(
+        cmd = 'ffmpeg -y -f lavfi -i aevalsrc=0 -rtsp_transport {} -i "{}" {} -metadata streamname={} -f flv - | {} -m unifi.clock_sync | nc {} 7550'.format(
             self.args.rtsp_transport,
             self.args.source,
             self.args.ffmpeg_args,
