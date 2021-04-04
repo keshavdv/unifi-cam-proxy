@@ -1,14 +1,14 @@
 import logging
 import os
+import shutil
 import subprocess
 import sys
-import shutil
-
 import tempfile
+
 import requests
 import xmltodict
-from requests.auth import HTTPDigestAuth
 from hikvisionapi import Client
+from requests.auth import HTTPDigestAuth
 
 from unifi.cams.base import UnifiCamBase
 
@@ -84,8 +84,12 @@ class HikvisionCam(UnifiCamBase):
             self.args.username, self.args.password, self.args.ip, channel
         )
 
-        cmd = 'ffmpeg -y -f lavfi -i aevalsrc=0 -i "{}" -vcodec copy -use_wallclock_as_timestamps 1 -strict -2 -c:a aac -metadata streamname={} -f flv - | {} -m unifi.clock_sync | nc {} 6666'.format(
-            vid_src, stream_name, sys.executable, self.args.host
+        cmd = 'ffmpeg -y -f lavfi -i aevalsrc=0 -i "{}" -vcodec copy -use_wallclock_as_timestamps 1 -strict -2 -c:a aac -metadata streamname={} -f flv - | {} -m unifi.clock_sync | nc {} {}'.format(
+            vid_src,
+            stream_name,
+            sys.executable,
+            self.args.host,
+            7550 if self.args.protect else 6666,
         )
         self.logger.info("Spawning ffmpeg: %s", cmd)
         if (

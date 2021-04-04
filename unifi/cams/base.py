@@ -18,5 +18,5 @@ class UnifiCamBase(object):
     def change_video_settings(self, options):
         pass
 
-    def start_video_stream(self, stream_name, options):
+    def start_video_stream(self, stream_name, target):
         raise NotImplementedError("You need to write this!")

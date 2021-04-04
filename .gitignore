@@ -7,3 +7,4 @@ client.pem
 run/
 MANIFEST
 MANIFEST.in
+.pyre/

@@ -1,13 +1,16 @@
-# import asyncio
 import json
-import ssl
-import time
-import requests
 import os
+import ssl
 import threading
+import time
+from typing import Any, Dict, Optional, Tuple
+
+import requests
 import websocket
 
 OPCODE_DATA = (websocket.ABNF.OPCODE_TEXT, websocket.ABNF.OPCODE_BINARY)
+
+AVClientRequest = AVClientResponse = Dict[str, Any]
 
 
 class Core(object):
@@ -25,13 +28,16 @@ class Core(object):
         self.init_time = time.time()
         self.pulse_interval = 0
         self.streams = {}
-        self.version = "UVC.S2L.v4.30.0.67.e596d3f.200918.0639"
+        if self.is_protect:
+            self.version = "UVC.S2L.v4.30.0.67.e596d3f.200918.0639"
+        else:
+            self.version = "UVC.S2L.v4.23.8.67.0eba6e3.200526.1046"
 
-    def gen_msg_id(self):
+    def gen_msg_id(self) -> int:
         self._msg_id += 1
         return self._msg_id
 
-    def recv(self, ws):
+    def recv(self, ws) -> Tuple[int, Optional[bytes]]:
         try:
             frame = ws.recv_frame()
         except websocket.WebSocketException:
@@ -49,11 +55,11 @@ class Core(object):
 
         return frame.opcode, frame.data
 
-    def init_adoption(self, ws):
+    async def init_adoption(self, ws) -> None:
         self.logger.info(
             "Initiating adoption with token [%s] and mac [%s]", self.token, self.mac
         )
-        self.send(
+        await self.send(
             ws,
             {
                 "from": "ubnt_avclient",
@@ -84,7 +90,7 @@ class Core(object):
             },
         )
 
-    def process_param_agreement(self, msg):
+    async def process_param_agreement(self, msg: AVClientRequest) -> AVClientResponse:
         return {
             "from": "ubnt_avclient",
             "functionName": "ubnt_avclient_paramAgreement",
@@ -95,7 +101,7 @@ class Core(object):
             "to": "UniFiVideo",
         }
 
-    def process_upgrade(self, msg):
+    async def process_upgrade(self, msg: AVClientRequest) -> None:
         url = msg["payload"]["uri"]
         headers = {"Range": "bytes=0-100"}
         r = requests.get(url, headers=headers, verify=False)
@@ -105,11 +111,12 @@ class Core(object):
         for i in range(0, 50):
             b = r.content[4 + i]
             if b != b"\x00":
-                version += b
+                version += chr(b)
+        self.logger.debug("Pretending to upgrade to: %s", version)
         self.version = version
         return
 
-    def process_isp_settings(self, msg):
+    async def process_isp_settings(self, msg: AVClientRequest) -> AVClientResponse:
         payload = {
             "aeMode": "auto",
             "aeTargetPercent": 50,
@@ -165,8 +172,7 @@ class Core(object):
             "inResponseTo": msg["messageId"],
         }
 
-    def process_video_settings(self, msg):
-        # self.cam.set_video_settings(msg['payload'])
+    async def process_video_settings(self, msg: AVClientRequest) -> AVClientResponse:
         vid_dst = {
             "video1": ["file:///dev/null"],
             "video2": ["file:///dev/null"],
@@ -430,18 +436,21 @@ class Core(object):
             "inResponseTo": msg["messageId"],
         }
 
-    def process_device_settings(self, msg):
+    async def process_device_settings(self, msg: AVClientRequest) -> AVClientResponse:
         return {
             "from": "ubnt_avclient",
             "to": "UniFiVideo",
             "responseExpected": False,
             "functionName": "ChangeDeviceSettings",
-            "payload": {"name": self.name, "timezone": "PST8PDT,M3.2.0,M11.1.0",},
+            "payload": {
+                "name": self.name,
+                "timezone": "PST8PDT,M3.2.0,M11.1.0",
+            },
             "messageId": self.gen_msg_id(),
             "inResponseTo": msg["messageId"],
         }
 
-    def process_osd_settings(self, msg):
+    async def process_osd_settings(self, msg: AVClientRequest) -> AVClientResponse:
         return {
             "from": "ubnt_avclient",
             "to": "UniFiVideo",
@@ -486,7 +495,7 @@ class Core(object):
             "inResponseTo": msg["messageId"],
         }
 
-    def process_network_status(self, msg):
+    async def process_network_status(self, msg: AVClientRequest) -> AVClientResponse:
         return {
             "from": "ubnt_avclient",
             "to": "UniFiVideo",
@@ -509,7 +518,26 @@ class Core(object):
             "inResponseTo": msg["messageId"],
         }
 
-    def process_sound_led_settings(self, msg):
+    async def process_system_stats(self, msg: AVClientRequest) -> AVClientResponse:
+        return {
+            "from": "ubnt_avclient",
+            "to": "UniFiVideo",
+            "responseExpected": False,
+            "functionName": "SystemStats",
+            "payload": {
+                "network": {
+                    "bytesRx": 0,
+                    "bytesTx": 0,
+                },
+                "battery": 0,
+            },
+            "messageId": self.gen_msg_id(),
+            "inResponseTo": msg["messageId"],
+        }
+
+    async def process_sound_led_settings(
+        self, msg: AVClientRequest
+    ) -> AVClientResponse:
         return {
             "from": "ubnt_avclient",
             "to": "UniFiVideo",
@@ -529,7 +557,9 @@ class Core(object):
             "inResponseTo": msg["messageId"],
         }
 
-    def process_change_isp_settings(self, msg):
+    async def process_change_isp_settings(
+        self, msg: AVClientRequest
+    ) -> AVClientResponse:
         payload = {
             "aeMode": "auto",
             "aeTargetPercent": 50,
@@ -596,7 +626,9 @@ class Core(object):
             "inResponseTo": msg["messageId"],
         }
 
-    def process_analytics_settings(self, msg):
+    async def process_analytics_settings(
+        self, msg: AVClientRequest
+    ) -> AVClientResponse:
         if msg["payload"]["sendPulse"] is 1:
             self.pulse_interval = msg["payload"]["pulsePeriodSec"]
         else:
@@ -611,7 +643,7 @@ class Core(object):
             "inResponseTo": msg["messageId"],
         }
 
-    def process_snapshot_request(self, msg):
+    async def process_snapshot_request(self, msg: AVClientRequest) -> None:
         path = self.cam.get_snapshot()
         while not os.path.isfile(path):
             time.sleep(0.1)
@@ -626,7 +658,7 @@ class Core(object):
             verify=False,
         )
 
-    def process_time(self, msg):
+    async def process_time(self, msg: AVClientRequest) -> AVClientResponse:
         return {
             "from": "ubnt_avclient",
             "functionName": "ubnt_avclient_paramAgreement",
@@ -641,7 +673,7 @@ class Core(object):
             "to": "UniFiVideo",
         }
 
-    def process_username_password(self, msg):
+    async def process_username_password(self, msg: AVClientRequest) -> Dict[str, Any]:
         return {
             "from": "ubnt_avclient",
             "functionName": "UpdateUsernamePassword",
@@ -652,64 +684,69 @@ class Core(object):
             "to": "UniFiVideo",
         }
 
-    def get_uptime(self):
+    def get_uptime(self) -> float:
         return time.time() - self.init_time
 
-    def send(self, ws, msg):
-        self.logger.debug("Sending: %s", msg)
+    async def send(self, ws, msg: AVClientRequest) -> None:
+        self.logger.debug(f"Sending: {msg}")
         ws.send_binary(json.dumps(msg))
 
-    def process(self, ws, msg):
+    async def process(self, ws, msg: bytes) -> bool:
         m = json.loads(msg)
-        self.logger.info("Processing [%s] message", m["functionName"])
-        self.logger.debug("Message contents: %s", m)
+        fn = m["functionName"]
+
+        self.logger.info(f"Processing [{fn}] message")
+        self.logger.debug(f"Message contents: {m}")
 
         if (
-            "responseExpected" not in m
-            or m["responseExpected"] == False
-            and m["functionName"] not in ["GetRequest", "UpdateFirmwareRequest",]
+            ("responseExpected" not in m)
+            or (m["responseExpected"] == False)
+            and (fn not in ["GetRequest", "UpdateFirmwareRequest"])
         ):
-            return
+            return False
 
-        res = None
-        if m["functionName"] == "ubnt_avclient_hello":
+        res: Optional[AVClientResponse] = None
+
+        if fn == "ubnt_avclient_hello":
             pass
-        elif m["functionName"] == "ubnt_avclient_timeSync":
+        elif fn == "ubnt_avclient_timeSync":
             pass
-        elif m["functionName"] == "ubnt_avclient_time":
-            res = self.process_time(m)
-        elif m["functionName"] == "ubnt_avclient_paramAgreement":
-            res = self.process_param_agreement(m)
-        elif m["functionName"] == "ResetIspSettings":
-            res = self.process_isp_settings(m)
-        elif m["functionName"] == "ChangeVideoSettings":
-            res = self.process_video_settings(m)
-        elif m["functionName"] == "ChangeDeviceSettings":
-            res = self.process_device_settings(m)
-        elif m["functionName"] == "ChangeOsdSettings":
-            res = self.process_osd_settings(m)
-        elif m["functionName"] == "NetworkStatus":
-            res = self.process_network_status(m)
-        elif m["functionName"] == "ChangeSoundLedSettings":
-            res = self.process_sound_led_settings(m)
-        elif m["functionName"] == "ChangeIspSettings":
-            res = self.process_change_isp_settings(m)
-        elif m["functionName"] == "ChangeAnalyticsSettings":
-            res = self.process_analytics_settings(m)
-        elif m["functionName"] == "GetRequest":
-            self.process_snapshot_request(m)
-        elif m["functionName"] == "UpdateUsernamePassword":
-            res = self.process_username_password(m)
-        elif m["functionName"] == "UpdateFirmwareRequest":
-            res = self.process_upgrade(m)
+        elif fn == "ubnt_avclient_time":
+            res = await self.process_time(m)
+        elif fn == "ubnt_avclient_paramAgreement":
+            res = await self.process_param_agreement(m)
+        elif fn == "ResetIspSettings":
+            res = await self.process_isp_settings(m)
+        elif fn == "ChangeVideoSettings":
+            res = await self.process_video_settings(m)
+        elif fn == "ChangeDeviceSettings":
+            res = await self.process_device_settings(m)
+        elif fn == "ChangeOsdSettings":
+            res = await self.process_osd_settings(m)
+        elif fn == "NetworkStatus":
+            res = await self.process_network_status(m)
+        elif fn == "GetSystemStats":
+            res = await self.process_system_stats(m)
+        elif fn == "ChangeSoundLedSettings":
+            res = await self.process_sound_led_settings(m)
+        elif fn == "ChangeIspSettings":
+            res = await self.process_change_isp_settings(m)
+        elif fn == "ChangeAnalyticsSettings":
+            res = await self.process_analytics_settings(m)
+        elif fn == "GetRequest":
+            await self.process_snapshot_request(m)
+        elif fn == "UpdateUsernamePassword":
+            res = await self.process_username_password(m)
+        elif fn == "UpdateFirmwareRequest":
+            res = await self.process_upgrade(m)
             return True
 
         if res is not None:
-            self.send(ws, res)
+            await self.send(ws, res)
 
         return False
 
-    def run(self):
+    async def run(self) -> None:
         if self.is_protect:
             uri = "wss://{}:7442/camera/1.0/ws".format(self.host)
         else:
@@ -720,7 +757,7 @@ class Core(object):
 
         while True:
             ws = websocket.create_connection(uri, sslopt=ssl_opts, header=headers)
-            self.init_adoption(ws)
+            await self.init_adoption(ws)
 
             while True:
                 opcode, data = self.recv(ws)
@@ -729,7 +766,7 @@ class Core(object):
                     msg = data
 
                 if msg is not None:
-                    reconnect = self.process(ws, msg)
+                    reconnect = await self.process(ws, msg)
                     if reconnect:
                         self.logger.info("Reconnecting...")
                         break
