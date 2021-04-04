@@ -33,6 +33,13 @@ def parse_args():
         "--name", "-n", default="unifi-cam-proxy", help="Name of camera"
     )
     parser.add_argument(
+        "--protect",
+        "-p",
+        default=False,
+        action="store_true",
+        help="Set if connecting to Unifi Protect",
+    )
+    parser.add_argument(
         "--verbose", "-v", action="store_true", help="increase output verbosity"
     )
 

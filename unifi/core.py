@@ -12,6 +12,7 @@ OPCODE_DATA = (websocket.ABNF.OPCODE_TEXT, websocket.ABNF.OPCODE_BINARY)
 
 class Core(object):
     def __init__(self, args, camera, logger):
+        self.is_protect = args.protect
         self.host = args.host
         self.cert = args.cert
         self.token = args.token
@@ -435,10 +436,7 @@ class Core(object):
             "to": "UniFiVideo",
             "responseExpected": False,
             "functionName": "ChangeDeviceSettings",
-            "payload": {
-                "name": self.name,
-                "timezone": "PST8PDT,M3.2.0,M11.1.0",
-            },
+            "payload": {"name": self.name, "timezone": "PST8PDT,M3.2.0,M11.1.0",},
             "messageId": self.gen_msg_id(),
             "inResponseTo": msg["messageId"],
         }
@@ -621,7 +619,9 @@ class Core(object):
         requests.post(
             msg["payload"]["uri"],
             files=files,
-            data=msg["payload"]["formFields"] if "formFields" in msg["payload"] else None,
+            data=msg["payload"]["formFields"]
+            if "formFields" in msg["payload"]
+            else None,
             cert=self.cert,
             verify=False,
         )
@@ -664,10 +664,11 @@ class Core(object):
         self.logger.info("Processing [%s] message", m["functionName"])
         self.logger.debug("Message contents: %s", m)
 
-        if "responseExpected" not in m or m["responseExpected"] == False and m["functionName"] not in [
-            "GetRequest",
-            "UpdateFirmwareRequest",
-        ]:
+        if (
+            "responseExpected" not in m
+            or m["responseExpected"] == False
+            and m["functionName"] not in ["GetRequest", "UpdateFirmwareRequest",]
+        ):
             return
 
         res = None
@@ -709,8 +710,10 @@ class Core(object):
         return False
 
     def run(self):
-        # uri = "wss://{}:7442/camera/1.0/ws?token={}".format(self.host, self.token)
-        uri = "wss://{}:7442/camera/1.0/ws".format(self.host)
+        if self.is_protect:
+            uri = "wss://{}:7442/camera/1.0/ws".format(self.host)
+        else:
+            uri = "wss://{}:7442/camera/1.0/ws?token={}".format(self.host, self.token)
         ssl_opts = {"cert_reqs": ssl.CERT_NONE, "certfile": self.cert}
         headers = {"camera-mac": self.mac}
         self.logger.info("Creating ws connection to %s", uri)
@@ -718,7 +721,6 @@ class Core(object):
         while True:
             ws = websocket.create_connection(uri, sslopt=ssl_opts, header=headers)
             self.init_adoption(ws)
-
 
             while True:
                 opcode, data = self.recv(ws)

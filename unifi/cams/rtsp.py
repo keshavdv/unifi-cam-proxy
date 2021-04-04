@@ -22,7 +22,7 @@ class RTSPCam(UnifiCamBase):
         parser.add_argument(
             "--rtsp-transport",
             default="tcp",
-            choices=['tcp', 'udp', 'http', 'udp_multicast'],
+            choices=["tcp", "udp", "http", "udp_multicast"],
             help="RTSP transport protocol used by stream",
         )
 
@@ -32,9 +32,7 @@ class RTSPCam(UnifiCamBase):
         self.dir = tempfile.mkdtemp()
         self.logger.info(self.dir)
         cmd = 'ffmpeg -y -re -rtsp_transport {} -i "{}" -vf fps=1 -update 1 {}/screen.jpg'.format(
-            self.args.rtsp_transport,
-            self.args.source,
-            self.dir,
+            self.args.rtsp_transport, self.args.source, self.dir,
         )
         self.logger.info(cmd)
         self.streams = {
