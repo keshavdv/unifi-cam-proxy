@@ -1,8 +1,10 @@
+import asyncio
 import json
 import os
 import ssl
 import threading
 import time
+import urllib
 from typing import Any, Dict, Optional, Tuple
 
 import requests
@@ -15,7 +17,6 @@ AVClientRequest = AVClientResponse = Dict[str, Any]
 
 class Core(object):
     def __init__(self, args, camera, logger):
-        self.is_protect = args.protect
         self.host = args.host
         self.cert = args.cert
         self.token = args.token
@@ -28,10 +29,7 @@ class Core(object):
         self.init_time = time.time()
         self.pulse_interval = 0
         self.streams = {}
-        if self.is_protect:
-            self.version = "UVC.S2L.v4.30.0.67.e596d3f.200918.0639"
-        else:
-            self.version = "UVC.S2L.v4.23.8.67.0eba6e3.200526.1046"
+        self.version = "UVC.S2L.v4.23.8.67.0eba6e3.200526.1046"
 
     def gen_msg_id(self) -> int:
         self._msg_id += 1
@@ -184,11 +182,19 @@ class Core(object):
                 if v:
                     if "avSerializer" in v:
                         vid_dst[k] = v["avSerializer"]["destinations"]
-                        if "parameters" in v["avSerializer"]:
+                        if (
+                            "parameters" in v["avSerializer"]
+                            and "destinations" in v["avSerializer"]
+                        ):
                             self.streams[k] = stream = v["avSerializer"]["parameters"][
                                 "streamName"
                             ]
-                            self.cam.start_video_stream(stream, k)
+                            host, port = urllib.parse.urlparse(
+                                v["avSerializer"]["destinations"][0]
+                            ).netloc.split(":")
+                            self.cam.start_video_stream(
+                                k, stream, destination=(host, port)
+                            )
 
         return {
             "from": "ubnt_avclient",
@@ -643,11 +649,15 @@ class Core(object):
             "inResponseTo": msg["messageId"],
         }
 
-    async def process_snapshot_request(self, msg: AVClientRequest) -> None:
+    async def process_snapshot_request(
+        self, msg: AVClientRequest
+    ) -> Optional[AVClientResponse]:
         path = self.cam.get_snapshot()
         while not os.path.isfile(path):
-            time.sleep(0.1)
-        files = {"payload": (msg["payload"]["filename"], open(path, "rb"))}
+            await asyncio.sleep(0.1)
+        files = {
+            "payload": (msg["payload"].get("filename", "snapshot"), open(path, "rb"))
+        }
         requests.post(
             msg["payload"]["uri"],
             files=files,
@@ -657,6 +667,16 @@ class Core(object):
             cert=self.cert,
             verify=False,
         )
+        if msg["responseExpected"]:
+            return {
+                "from": "ubnt_avclient",
+                "functionName": "GetRequest",
+                "inResponseTo": msg["messageId"],
+                "messageId": self.gen_msg_id(),
+                "payload": {},
+                "responseExpected": False,
+                "to": "UniFiVideo",
+            }
 
     async def process_time(self, msg: AVClientRequest) -> AVClientResponse:
         return {
@@ -701,7 +721,9 @@ class Core(object):
         if (
             ("responseExpected" not in m)
             or (m["responseExpected"] == False)
-            and (fn not in ["GetRequest", "UpdateFirmwareRequest"])
+            and (
+                fn not in ["GetRequest", "ChangeVideoSettings", "UpdateFirmwareRequest"]
+            )
         ):
             return False
 
@@ -734,7 +756,7 @@ class Core(object):
         elif fn == "ChangeAnalyticsSettings":
             res = await self.process_analytics_settings(m)
         elif fn == "GetRequest":
-            await self.process_snapshot_request(m)
+            res = await self.process_snapshot_request(m)
         elif fn == "UpdateUsernamePassword":
             res = await self.process_username_password(m)
         elif fn == "UpdateFirmwareRequest":
@@ -747,7 +769,7 @@ class Core(object):
         return False
 
     async def run(self) -> None:
-        if self.is_protect:
+        if not self.token:
             uri = "wss://{}:7442/camera/1.0/ws".format(self.host)
         else:
             uri = "wss://{}:7442/camera/1.0/ws?token={}".format(self.host, self.token)
@@ -756,7 +778,9 @@ class Core(object):
         self.logger.info("Creating ws connection to %s", uri)
 
         while True:
-            ws = websocket.create_connection(uri, sslopt=ssl_opts, header=headers)
+            ws = websocket.create_connection(
+                uri, sslopt=ssl_opts, header=headers, subprotocols=["secure_transfer"]
+            )
             await self.init_adoption(ws)
 
             while True:

@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from typing import Tuple
 
 import requests
 import xmltodict
@@ -75,9 +76,11 @@ class HikvisionCam(UnifiCamBase):
             method="put", data=xmltodict.unparse(req, pretty=True)
         )
 
-    def start_video_stream(self, stream_name, video_mode):
+    def start_video_stream(
+        self, stream_index: str, stream_name: str, destination: Tuple[str, int]
+    ):
         channel = 1
-        if video_mode == "video3":
+        if stream_name == "video3":
             channel = 2
 
         vid_src = "rtsp://{}:{}@{}:554/Streaming/Channels/{}/".format(
@@ -88,8 +91,8 @@ class HikvisionCam(UnifiCamBase):
             vid_src,
             stream_name,
             sys.executable,
-            self.args.host,
-            7550 if self.args.protect else 6666,
+            destination[0],
+            destination[1],
         )
         self.logger.info("Spawning ffmpeg: %s", cmd)
         if (

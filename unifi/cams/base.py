@@ -1,4 +1,5 @@
 import logging
+from typing import Tuple
 
 
 class UnifiCamBase(object):
@@ -18,5 +19,7 @@ class UnifiCamBase(object):
     def change_video_settings(self, options):
         pass
 
-    def start_video_stream(self, stream_name, target):
+    def start_video_stream(
+        self, stream_index: str, stream_name: str, destination: Tuple[str, int]
+    ):
         raise NotImplementedError("You need to write this!")
