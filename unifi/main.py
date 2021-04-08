@@ -25,7 +25,7 @@ def parse_args():
         default="client.pem",
         help="Client certificate path",
     )
-    parser.add_argument("--token", "-t", default="", help="Adoption token")
+    parser.add_argument("--token", "-t", required=True, help="Adoption token")
     parser.add_argument("--mac", "-m", default="44D9E7407670", help="MAC address")
     parser.add_argument(
         "--ip", "-i", default="192.168.1.10", help="IP address of camera"

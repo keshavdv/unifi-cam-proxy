@@ -769,10 +769,7 @@ class Core(object):
         return False
 
     async def run(self) -> None:
-        if not self.token:
-            uri = "wss://{}:7442/camera/1.0/ws".format(self.host)
-        else:
-            uri = "wss://{}:7442/camera/1.0/ws?token={}".format(self.host, self.token)
+        uri = "wss://{}:7442/camera/1.0/ws?token={}".format(self.host, self.token)
         ssl_opts = {"cert_reqs": ssl.CERT_NONE, "certfile": self.cert}
         headers = {"camera-mac": self.mac}
         self.logger.info("Creating ws connection to %s", uri)
