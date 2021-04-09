@@ -189,12 +189,15 @@ class Core(object):
                             self.streams[k] = stream = v["avSerializer"]["parameters"][
                                 "streamName"
                             ]
-                            host, port = urllib.parse.urlparse(
-                                v["avSerializer"]["destinations"][0]
-                            ).netloc.split(":")
-                            self.cam.start_video_stream(
-                                k, stream, destination=(host, port)
-                            )
+                            try:
+                                host, port = urllib.parse.urlparse(
+                                    v["avSerializer"]["destinations"][0]
+                                ).netloc.split(":")
+                                self.cam.start_video_stream(
+                                    k, stream, destination=(host, port)
+                                )
+                            except ValueError:
+                                pass
 
         return {
             "from": "ubnt_avclient",
@@ -775,9 +778,16 @@ class Core(object):
         self.logger.info("Creating ws connection to %s", uri)
 
         while True:
-            ws = websocket.create_connection(
-                uri, sslopt=ssl_opts, header=headers, subprotocols=["secure_transfer"]
-            )
+            try:
+                ws = websocket.create_connection(
+                    uri, sslopt=ssl_opts, header=headers, subprotocols=["secure_transfer"]
+                )
+            except websocket._exceptions.WebSocketException as e:
+                if "Invalid WebSocket Header" in str(e):
+                    self.logger.info("Falling back to UFV mode")
+                    ws = websocket.create_connection(
+                        uri, sslopt=ssl_opts, header=headers
+                    )
             await self.init_adoption(ws)
 
             while True:
