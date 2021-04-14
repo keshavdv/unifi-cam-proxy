@@ -17,7 +17,7 @@ class RTSPCam(UnifiCamBase):
         parser.add_argument(
             "--ffmpeg-args",
             "-f",
-            default="-vcodec copy -strict -2 -c:a aac",
+            default="-f lavfi -i aevalsrc=0  -vcodec copy -strict -2 -c:a aac",
             help="Transcoding args for `ffmpeg -i <src> <args> <dst>`",
         )
         parser.add_argument(
@@ -46,7 +46,7 @@ class RTSPCam(UnifiCamBase):
     def start_video_stream(
         self, stream_index: str, stream_name: str, destination: Tuple[str, int]
     ):
-        cmd = f'ffmpeg -y -f lavfi -i aevalsrc=0 -rtsp_transport {self.args.rtsp_transport} -i "{self.args.source}" {self.args.ffmpeg_args} -metadata streamname={stream_name} -f flv - | {sys.executable} -m unifi.clock_sync | nc {destination[0]} {destination[1]}'
+        cmd = f'ffmpeg -y -rtsp_transport {self.args.rtsp_transport} -i "{self.args.source}" {self.args.ffmpeg_args} -metadata streamname={stream_name} -f flv - | {sys.executable} -m unifi.clock_sync | nc {destination[0]} {destination[1]}'
         self.logger.info("Spawning ffmpeg (%s): %s", stream_name, cmd)
         if (
             stream_name not in self.streams

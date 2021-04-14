@@ -26,12 +26,25 @@ def parse_args():
         help="Client certificate path",
     )
     parser.add_argument("--token", "-t", required=True, help="Adoption token")
-    parser.add_argument("--mac", "-m", default="44D9E7407670", help="MAC address")
+    parser.add_argument("--mac", "-m", default="AABBCCDDEEFF", help="MAC address")
     parser.add_argument(
-        "--ip", "-i", default="192.168.1.10", help="IP address of camera"
+        "--ip",
+        "-i",
+        default="192.168.1.10",
+        help="IP address of camera (only used to display in UI)",
     )
     parser.add_argument(
-        "--name", "-n", default="unifi-cam-proxy", help="Name of camera"
+        "--name",
+        "-n",
+        default="unifi-cam-proxy",
+        help="Name of camera (only works for UFV)",
+    )
+
+    parser.add_argument(
+        "--fw-version",
+        "-f",
+        default="UVC.S2L.v4.23.8.67.0eba6e3.200526.1046",
+        help="Firmware version to initiate connection with",
     )
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="increase output verbosity"

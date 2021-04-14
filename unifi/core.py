@@ -7,7 +7,8 @@ import time
 import urllib
 from typing import Any, Dict, Optional, Tuple
 
-import requests
+import aiohttp
+import backoff
 import websocket
 
 OPCODE_DATA = (websocket.ABNF.OPCODE_TEXT, websocket.ABNF.OPCODE_BINARY)
@@ -29,7 +30,13 @@ class Core(object):
         self.init_time = time.time()
         self.pulse_interval = 0
         self.streams = {}
-        self.version = "UVC.S2L.v4.23.8.67.0eba6e3.200526.1046"
+        self.version = args.fw_version
+
+        # Set up ssl context for requests
+        self.ssl_context = ssl.create_default_context()
+        self.ssl_context.check_hostname = False
+        self.ssl_context.verify_mode = ssl.CERT_NONE
+        self.ssl_context.load_cert_chain(self.cert, self.cert)
 
     def gen_msg_id(self) -> int:
         self._msg_id += 1
@@ -102,17 +109,17 @@ class Core(object):
     async def process_upgrade(self, msg: AVClientRequest) -> None:
         url = msg["payload"]["uri"]
         headers = {"Range": "bytes=0-100"}
-        r = requests.get(url, headers=headers, verify=False)
-
-        # Parse the new version string from the upgrade binary
-        version = ""
-        for i in range(0, 50):
-            b = r.content[4 + i]
-            if b != b"\x00":
-                version += chr(b)
-        self.logger.debug("Pretending to upgrade to: %s", version)
-        self.version = version
-        return
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers, ssl=False) as r:
+                # Parse the new version string from the upgrade binary
+                content = await r.content.readexactly(54)
+                version = ""
+                for i in range(0, 50):
+                    b = content[4 + i]
+                    if b != b"\x00":
+                        version += chr(b)
+                self.logger.debug("Pretending to upgrade to: %s", version)
+                self.version = version
 
     async def process_isp_settings(self, msg: AVClientRequest) -> AVClientResponse:
         payload = {
@@ -638,7 +645,7 @@ class Core(object):
     async def process_analytics_settings(
         self, msg: AVClientRequest
     ) -> AVClientResponse:
-        if msg["payload"]["sendPulse"] is 1:
+        if msg["payload"]["sendPulse"] == 1:
             self.pulse_interval = msg["payload"]["pulsePeriodSec"]
         else:
             self.pulse_interval = 0
@@ -655,21 +662,25 @@ class Core(object):
     async def process_snapshot_request(
         self, msg: AVClientRequest
     ) -> Optional[AVClientResponse]:
+
         path = self.cam.get_snapshot()
-        while not os.path.isfile(path):
-            await asyncio.sleep(0.1)
-        files = {
-            "payload": (msg["payload"].get("filename", "snapshot"), open(path, "rb"))
-        }
-        requests.post(
-            msg["payload"]["uri"],
-            files=files,
-            data=msg["payload"]["formFields"]
-            if "formFields" in msg["payload"]
-            else None,
-            cert=self.cert,
-            verify=False,
-        )
+        if os.path.isfile(path):
+            async with aiohttp.ClientSession() as session:
+                files = {"payload": open(path, "rb")}
+                files.update(msg["payload"].get("formFields", {}))
+                try:
+                    await session.post(
+                        msg["payload"]["uri"],
+                        data=files,
+                        ssl=self.ssl_context,
+                    )
+                except aiohttp.ClientError:
+                    self.logger.exception("Failed to upload snapshot")
+        else:
+            self.logger.warning(
+                f"Snapshot file {path} is not ready yet, skipping upload"
+            )
+
         if msg["responseExpected"]:
             return {
                 "from": "ubnt_avclient",
@@ -725,7 +736,13 @@ class Core(object):
             ("responseExpected" not in m)
             or (m["responseExpected"] == False)
             and (
-                fn not in ["GetRequest", "ChangeVideoSettings", "UpdateFirmwareRequest"]
+                fn
+                not in [
+                    "GetRequest",
+                    "ChangeVideoSettings",
+                    "UpdateFirmwareRequest",
+                    "Reboot",
+                ]
             )
         ):
             return False
@@ -763,7 +780,9 @@ class Core(object):
         elif fn == "UpdateUsernamePassword":
             res = await self.process_username_password(m)
         elif fn == "UpdateFirmwareRequest":
-            res = await self.process_upgrade(m)
+            await self.process_upgrade(m)
+            return True
+        elif fn == "Reboot":
             return True
 
         if res is not None:
@@ -771,36 +790,53 @@ class Core(object):
 
         return False
 
+    @backoff.on_predicate(
+        backoff.expo,
+        # (websocket._exceptions.WebSocketBadStatusException, ),
+        lambda retryable: retryable,
+        factor=2,
+        jitter=None,
+        max_value=10,
+    )
     async def run(self) -> None:
         uri = "wss://{}:7442/camera/1.0/ws?token={}".format(self.host, self.token)
         ssl_opts = {"cert_reqs": ssl.CERT_NONE, "certfile": self.cert}
         headers = {"camera-mac": self.mac}
         self.logger.info("Creating ws connection to %s", uri)
 
+        # Connect to server
+        try:
+            ws = websocket.create_connection(
+                uri,
+                sslopt=ssl_opts,
+                header=headers,
+                subprotocols=["secure_transfer"],
+            )
+        except websocket._exceptions.WebSocketBadStatusException as e:
+            # Hitting rate-limiting
+            if e.status_code == 429:
+                return True
+            raise
+        except websocket._exceptions.WebSocketException as e:
+            if "Invalid WebSocket Header" in str(e):
+                self.logger.info("Falling back to UFV mode")
+                ws = websocket.create_connection(uri, sslopt=ssl_opts, header=headers)
+            else:
+                raise
+
+        await self.init_adoption(ws)
+
         while True:
-            try:
-                ws = websocket.create_connection(
-                    uri, sslopt=ssl_opts, header=headers, subprotocols=["secure_transfer"]
-                )
-            except websocket._exceptions.WebSocketException as e:
-                if "Invalid WebSocket Header" in str(e):
-                    self.logger.info("Falling back to UFV mode")
-                    ws = websocket.create_connection(
-                        uri, sslopt=ssl_opts, header=headers
-                    )
-            await self.init_adoption(ws)
+            opcode, data = self.recv(ws)
+            msg = None
+            if opcode in OPCODE_DATA:
+                msg = data
 
-            while True:
-                opcode, data = self.recv(ws)
-                msg = None
-                if opcode in OPCODE_DATA:
-                    msg = data
+            if msg is not None:
+                force_reconnect = await self.process(ws, msg)
+                if force_reconnect:
+                    self.logger.info("Reconnecting...")
+                    return True
 
-                if msg is not None:
-                    reconnect = await self.process(ws, msg)
-                    if reconnect:
-                        self.logger.info("Reconnecting...")
-                        break
-
-                if opcode == websocket.ABNF.OPCODE_CLOSE:
-                    break
+            if opcode == websocket.ABNF.OPCODE_CLOSE:
+                break
