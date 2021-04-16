@@ -31,9 +31,8 @@ class RTSPCam(UnifiCamBase):
         self.logger = logger
         self.args = args
         self.dir = tempfile.mkdtemp()
-        self.logger.info(self.dir)
         cmd = f'ffmpeg -y -re -rtsp_transport {self.args.rtsp_transport} -i "{self.args.source}" -vf fps=1 -update 1 {self.dir}/screen.jpg'
-        self.logger.info(cmd)
+        self.logger.info(f"Spawning stream for snapshots: {cmd}")
         self.streams = {
             "mjpg": subprocess.Popen(
                 cmd, stdout=FNULL, stderr=subprocess.STDOUT, shell=True

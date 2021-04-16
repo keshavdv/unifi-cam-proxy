@@ -2,16 +2,13 @@ import asyncio
 import json
 import os
 import ssl
-import threading
 import time
 import urllib
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
 import aiohttp
 import backoff
-import websocket
-
-OPCODE_DATA = (websocket.ABNF.OPCODE_TEXT, websocket.ABNF.OPCODE_BINARY)
+import websockets
 
 AVClientRequest = AVClientResponse = Dict[str, Any]
 
@@ -42,27 +39,9 @@ class Core(object):
         self._msg_id += 1
         return self._msg_id
 
-    def recv(self, ws) -> Tuple[int, Optional[bytes]]:
-        try:
-            frame = ws.recv_frame()
-        except websocket.WebSocketException:
-            return websocket.ABNF.OPCODE_CLOSE, None
-        if not frame:
-            raise websocket.WebSocketException("Not a valid frame %s" % frame)
-        elif frame.opcode in OPCODE_DATA:
-            return frame.opcode, frame.data
-        elif frame.opcode == websocket.ABNF.OPCODE_CLOSE:
-            ws.send_close()
-            return frame.opcode, None
-        elif frame.opcode == websocket.ABNF.OPCODE_PING:
-            ws.pong(frame.data)
-            return frame.opcode, frame.data
-
-        return frame.opcode, frame.data
-
     async def init_adoption(self, ws) -> None:
         self.logger.info(
-            "Initiating adoption with token [%s] and mac [%s]", self.token, self.mac
+            f"Initiating adoption with token [{self.token}] and mac [{self.mac}]"
         )
         await self.send(
             ws,
@@ -118,7 +97,7 @@ class Core(object):
                     b = content[4 + i]
                     if b != b"\x00":
                         version += chr(b)
-                self.logger.debug("Pretending to upgrade to: %s", version)
+                self.logger.debug(f"Pretending to upgrade to: {version}")
                 self.version = version
 
     async def process_isp_settings(self, msg: AVClientRequest) -> AVClientResponse:
@@ -534,23 +513,6 @@ class Core(object):
             "inResponseTo": msg["messageId"],
         }
 
-    async def process_system_stats(self, msg: AVClientRequest) -> AVClientResponse:
-        return {
-            "from": "ubnt_avclient",
-            "to": "UniFiVideo",
-            "responseExpected": False,
-            "functionName": "SystemStats",
-            "payload": {
-                "network": {
-                    "bytesRx": 0,
-                    "bytesTx": 0,
-                },
-                "battery": 0,
-            },
-            "messageId": self.gen_msg_id(),
-            "inResponseTo": msg["messageId"],
-        }
-
     async def process_sound_led_settings(
         self, msg: AVClientRequest
     ) -> AVClientResponse:
@@ -682,15 +644,7 @@ class Core(object):
             )
 
         if msg["responseExpected"]:
-            return {
-                "from": "ubnt_avclient",
-                "functionName": "GetRequest",
-                "inResponseTo": msg["messageId"],
-                "messageId": self.gen_msg_id(),
-                "payload": {},
-                "responseExpected": False,
-                "to": "UniFiVideo",
-            }
+            return self.gen_empty_response("GetRequest", msg)
 
     async def process_time(self, msg: AVClientRequest) -> AVClientResponse:
         return {
@@ -707,10 +661,10 @@ class Core(object):
             "to": "UniFiVideo",
         }
 
-    async def process_username_password(self, msg: AVClientRequest) -> Dict[str, Any]:
+    def gen_empty_response(self, name: str, msg: AVClientRequest) -> AVClientResponse:
         return {
             "from": "ubnt_avclient",
-            "functionName": "UpdateUsernamePassword",
+            "functionName": name,
             "inResponseTo": msg["messageId"],
             "messageId": self.gen_msg_id(),
             "payload": {},
@@ -723,7 +677,8 @@ class Core(object):
 
     async def send(self, ws, msg: AVClientRequest) -> None:
         self.logger.debug(f"Sending: {msg}")
-        ws.send_binary(json.dumps(msg))
+        await ws.send(json.dumps(msg).encode())
+        # ws.send_binary(json.dumps(msg))
 
     async def process(self, ws, msg: bytes) -> bool:
         m = json.loads(msg)
@@ -767,8 +722,8 @@ class Core(object):
             res = await self.process_osd_settings(m)
         elif fn == "NetworkStatus":
             res = await self.process_network_status(m)
-        elif fn == "GetSystemStats":
-            res = await self.process_system_stats(m)
+        elif fn == "AnalyticsTest":
+            res = self.gen_empty_response("AnalyticsTest", m)
         elif fn == "ChangeSoundLedSettings":
             res = await self.process_sound_led_settings(m)
         elif fn == "ChangeIspSettings":
@@ -778,7 +733,7 @@ class Core(object):
         elif fn == "GetRequest":
             res = await self.process_snapshot_request(m)
         elif fn == "UpdateUsernamePassword":
-            res = await self.process_username_password(m)
+            res = self.gen_empty_response("UpdateUsernamePassword", m)
         elif fn == "UpdateFirmwareRequest":
             await self.process_upgrade(m)
             return True
@@ -790,53 +745,54 @@ class Core(object):
 
         return False
 
-    @backoff.on_predicate(
-        backoff.expo,
-        # (websocket._exceptions.WebSocketBadStatusException, ),
-        lambda retryable: retryable,
-        factor=2,
-        jitter=None,
-        max_value=10,
-    )
     async def run(self) -> None:
         uri = "wss://{}:7442/camera/1.0/ws?token={}".format(self.host, self.token)
         ssl_opts = {"cert_reqs": ssl.CERT_NONE, "certfile": self.cert}
         headers = {"camera-mac": self.mac}
-        self.logger.info("Creating ws connection to %s", uri)
+        has_connected = False
 
-        # Connect to server
-        try:
-            ws = websocket.create_connection(
-                uri,
-                sslopt=ssl_opts,
-                header=headers,
-                subprotocols=["secure_transfer"],
-            )
-        except websocket._exceptions.WebSocketBadStatusException as e:
-            # Hitting rate-limiting
-            if e.status_code == 429:
-                return True
-            raise
-        except websocket._exceptions.WebSocketException as e:
-            if "Invalid WebSocket Header" in str(e):
-                self.logger.info("Falling back to UFV mode")
-                ws = websocket.create_connection(uri, sslopt=ssl_opts, header=headers)
-            else:
+        @backoff.on_predicate(
+            backoff.expo,
+            # (websocket._exceptions.WebSocketBadStatusException, ),
+            lambda retryable: retryable,
+            factor=2,
+            jitter=None,
+            max_value=10,
+            logger=self.logger,
+        )
+        async def connect():
+            nonlocal has_connected
+            self.logger.info(f"Creating ws connection to {uri}")
+            try:
+                ws = await websockets.connect(
+                    uri,
+                    extra_headers=headers,
+                    ssl=self.ssl_context,
+                    subprotocols=["secure_transfer"],
+                )
+                has_connected = True
+            except websockets.exceptions.InvalidStatusCode as e:
+                # Hitting rate-limiting
+                if e.status_code == 429:
+                    return True
+                raise
+            except ConnectionRefusedError:
+                if has_connected:
+                    return True
                 raise
 
-        await self.init_adoption(ws)
+            await self.init_adoption(ws)
 
-        while True:
-            opcode, data = self.recv(ws)
-            msg = None
-            if opcode in OPCODE_DATA:
-                msg = data
-
-            if msg is not None:
-                force_reconnect = await self.process(ws, msg)
-                if force_reconnect:
-                    self.logger.info("Reconnecting...")
+            while True:
+                try:
+                    msg = await ws.recv()
+                except websockets.exceptions.ConnectionClosedError:
                     return True
 
-            if opcode == websocket.ABNF.OPCODE_CLOSE:
-                break
+                if msg is not None:
+                    force_reconnect = await self.process(ws, msg)
+                    if force_reconnect:
+                        self.logger.info("Reconnecting...")
+                        return True
+
+        await connect()

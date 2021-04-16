@@ -11,9 +11,6 @@ from unifi.core import Core
 
 CAMS = {"hikvision": HikvisionCam, "rtsp": RTSPCam}
 
-logging.basicConfig()
-coloredlogs.install(level="DEBUG")
-
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -63,9 +60,11 @@ def main():
 
     core_logger = logging.getLogger("Core")
     logger = logging.getLogger(klass.__name__)
+    coloredlogs.install(level=logging.INFO, logger=core_logger)
     if args.verbose:
         logger.setLevel(logging.DEBUG)
         core_logger.setLevel(logging.DEBUG)
+        coloredlogs.install(level=logging.DEBUG, logger=core_logger)
 
     cam = klass(args, logger)
     c = Core(args, cam, core_logger)
