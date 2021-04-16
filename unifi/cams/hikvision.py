@@ -1,38 +1,28 @@
-import logging
-import os
-import shutil
-import subprocess
-import sys
 import tempfile
-from typing import Tuple
 
-import requests
 import xmltodict
 from hikvisionapi import Client
-from requests.auth import HTTPDigestAuth
 
 from unifi.cams.base import UnifiCamBase
 
-FNULL = open(os.devnull, "w")
-
 
 class HikvisionCam(UnifiCamBase):
+    def __init__(self, args, logger=None):
+        super().__init__(args, logger)
+        self.snapshot_dir = tempfile.mkdtemp()
+        self.streams = {}
+        self.cam = Client(
+            f"http://{self.args.ip}", self.args.username, self.args.password
+        )
+
     @classmethod
     def add_parser(self, parser):
+        super().add_parser(parser)
         parser.add_argument("--username", "-u", required=True, help="Camera username")
         parser.add_argument("--password", "-p", required=True, help="Camera password")
 
-    def __init__(self, args, logger=None):
-        self.logger = logger
-        self.args = args
-        self.dir = tempfile.mkdtemp()
-        self.streams = {}
-        self.cam = Client(
-            "http://{}".format(self.args.ip), self.args.username, self.args.password
-        )
-
-    def get_snapshot(self):
-        img_file = "{}/screen.jpg".format(self.dir)
+    async def get_snapshot(self):
+        img_file = "{}/screen.jpg".format(self.snapshot_dir)
         resp = self.cam.Streaming.channels[102].picture(
             method="get", type="opaque_data"
         )
@@ -76,29 +66,9 @@ class HikvisionCam(UnifiCamBase):
             method="put", data=xmltodict.unparse(req, pretty=True)
         )
 
-    def start_video_stream(
-        self, stream_index: str, stream_name: str, destination: Tuple[str, int]
-    ):
+    def get_stream_source(self, stream_index: str):
         channel = 1
-        if stream_name == "video3":
-            channel = 2
+        if stream_index != "video1":
+            channel = 3
 
-        vid_src = "rtsp://{}:{}@{}:554/Streaming/Channels/{}/".format(
-            self.args.username, self.args.password, self.args.ip, channel
-        )
-
-        cmd = 'ffmpeg -y -f lavfi -i aevalsrc=0 -i "{}" -vcodec copy -use_wallclock_as_timestamps 1 -strict -2 -c:a aac -metadata streamname={} -f flv - | {} -m unifi.clock_sync | nc {} {}'.format(
-            vid_src,
-            stream_name,
-            sys.executable,
-            destination[0],
-            destination[1],
-        )
-        self.logger.info("Spawning ffmpeg: %s", cmd)
-        if (
-            stream_name not in self.streams
-            or self.streams[stream_name].poll() is not None
-        ):
-            self.streams[stream_name] = subprocess.Popen(
-                cmd, stdout=FNULL, stderr=subprocess.STDOUT, shell=True
-            )
+        return f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}:554/Streaming/Channels/{channel}/"

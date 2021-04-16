@@ -1,56 +1,35 @@
-import logging
-import os
 import subprocess
-import sys
 import tempfile
-from typing import Tuple
 
 from unifi.cams.base import UnifiCamBase
 
-FNULL = open(os.devnull, "w")
-
 
 class RTSPCam(UnifiCamBase):
+    def __init__(self, args, logger=None):
+        super(RTSPCam, self).__init__(args, logger)
+        self.args = args
+        self.event_id = 0
+        self.snapshot_dir = tempfile.mkdtemp()
+        self.snapshot_stream = None
+
     @classmethod
     def add_parser(self, parser):
+        super().add_parser(parser)
         parser.add_argument("--source", "-s", required=True, help="Stream source")
-        parser.add_argument(
-            "--ffmpeg-args",
-            "-f",
-            default="-f lavfi -i aevalsrc=0  -vcodec copy -strict -2 -c:a aac",
-            help="Transcoding args for `ffmpeg -i <src> <args> <dst>`",
-        )
-        parser.add_argument(
-            "--rtsp-transport",
-            default="tcp",
-            choices=["tcp", "udp", "http", "udp_multicast"],
-            help="RTSP transport protocol used by stream",
-        )
 
-    def __init__(self, args, logger=None):
-        self.logger = logger
-        self.args = args
-        self.dir = tempfile.mkdtemp()
-        cmd = f'ffmpeg -y -re -rtsp_transport {self.args.rtsp_transport} -i "{self.args.source}" -vf fps=1 -update 1 {self.dir}/screen.jpg'
-        self.logger.info(f"Spawning stream for snapshots: {cmd}")
-        self.streams = {
-            "mjpg": subprocess.Popen(
-                cmd, stdout=FNULL, stderr=subprocess.STDOUT, shell=True
+    async def get_snapshot(self):
+        if not self.snapshot_stream or self.snapshot_stream.poll() is not None:
+            cmd = f'ffmpeg -nostdin -y -re -rtsp_transport {self.args.rtsp_transport} -i "{self.args.source}" -vf fps=1 -update 1 {self.snapshot_dir}/screen.jpg'
+            self.logger.info(f"Spawning stream for snapshots: {cmd}")
+            self.snapshot_stream = subprocess.Popen(
+                cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True
             )
-        }
+        return "{}/screen.jpg".format(self.snapshot_dir)
 
-    def get_snapshot(self):
-        return "{}/screen.jpg".format(self.dir)
+    async def close(self):
+        await super().close()
+        if self.snapshot_stream:
+            self.snapshot_stream.kill()
 
-    def start_video_stream(
-        self, stream_index: str, stream_name: str, destination: Tuple[str, int]
-    ):
-        cmd = f'ffmpeg -y -rtsp_transport {self.args.rtsp_transport} -i "{self.args.source}" {self.args.ffmpeg_args} -metadata streamname={stream_name} -f flv - | {sys.executable} -m unifi.clock_sync | nc {destination[0]} {destination[1]}'
-        self.logger.info("Spawning ffmpeg (%s): %s", stream_name, cmd)
-        if (
-            stream_name not in self.streams
-            or self.streams[stream_name].poll() is not None
-        ):
-            self.streams[stream_name] = subprocess.Popen(
-                cmd, stdout=FNULL, stderr=subprocess.STDOUT, shell=True
-            )
+    def get_stream_source(self, stream_index: str):
+        return self.args.source

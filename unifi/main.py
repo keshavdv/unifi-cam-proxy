@@ -1,15 +1,20 @@
 import argparse
 import asyncio
 import logging
-import os
+import sys
+from shutil import which
 
 import coloredlogs
 
-from unifi.cams.hikvision import HikvisionCam
-from unifi.cams.rtsp import RTSPCam
+from unifi.cams import HikvisionCam, LorexCam, RTSPCam, RTSPMotionCam
 from unifi.core import Core
 
-CAMS = {"hikvision": HikvisionCam, "rtsp": RTSPCam}
+CAMS = {
+    "hikvision": HikvisionCam,
+    "rtsp": RTSPCam,
+    "rtsp_motion": RTSPMotionCam,
+    "lorex": LorexCam,
+}
 
 
 def parse_args():
@@ -36,7 +41,24 @@ def parse_args():
         default="unifi-cam-proxy",
         help="Name of camera (only works for UFV)",
     )
-
+    parser.add_argument(
+        "--model",
+        default="UVC G3",
+        choices=[
+            "UVC G3",
+            "UVC G3 Dome",
+            "UVC G3 Micro",
+            "UVC G3 Instant",
+            "UVC G3 Pro",
+            "UVC G3 Flex",
+            "UVC G4 Bullet",
+            "UVC G4 Pro",
+            "UVC G4 PTZ",
+            "UVC G4 Doorbell",
+            "UVC G4 Dome",
+        ],
+        help="Hardware model to identify as",
+    )
     parser.add_argument(
         "--fw-version",
         "-f",
@@ -60,11 +82,18 @@ def main():
 
     core_logger = logging.getLogger("Core")
     logger = logging.getLogger(klass.__name__)
-    coloredlogs.install(level=logging.INFO, logger=core_logger)
+
+    level = logging.INFO
     if args.verbose:
-        logger.setLevel(logging.DEBUG)
-        core_logger.setLevel(logging.DEBUG)
-        coloredlogs.install(level=logging.DEBUG, logger=core_logger)
+        level = logging.DEBUG
+
+    for logger in [core_logger, logger]:
+        coloredlogs.install(level=level, logger=logger)
+
+    # Preflight checks
+    if which("ffmpeg") is None:
+        self.logger.error("ffmpeg is not installed")
+        sys.exit(1)
 
     cam = klass(args, logger)
     c = Core(args, cam, core_logger)
