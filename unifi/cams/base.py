@@ -179,7 +179,7 @@ class UnifiCamBase(metaclass=ABCMeta):
                     "totalLoad": 0.5474,
                     "upgradeTimeoutSec": 150,
                     "uptime": self.get_uptime(),
-                    "features": {},
+                    "features": {"mic": True},
                 },
             ),
         )
@@ -188,7 +188,7 @@ class UnifiCamBase(metaclass=ABCMeta):
         return self.gen_response(
             "ubnt_avclient_paramAgreement",
             msg["messageId"],
-            {"authToken": self.args.token, "features": {}},
+            {"authToken": self.args.token, "features": {"mic": True}},
         )
 
     async def process_upgrade(self, msg: AVClientRequest) -> None:
