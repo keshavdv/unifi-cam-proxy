@@ -1,3 +1,5 @@
+import argparse
+import logging
 import subprocess
 import tempfile
 from pathlib import Path
@@ -8,8 +10,8 @@ from unifi.cams.base import UnifiCamBase
 
 
 class RTSPCam(UnifiCamBase):
-    def __init__(self, args, logger=None):
-        super(RTSPCam, self).__init__(args, logger)
+    def __init__(self, args: argparse.Namespace, logger: logging.Logger) -> None:
+        super().__init__(args, logger)
         self.args = args
         self.event_id = 0
         self.snapshot_dir = tempfile.mkdtemp()
@@ -19,7 +21,7 @@ class RTSPCam(UnifiCamBase):
             self.start_snapshot_stream()
 
     @classmethod
-    def add_parser(self, parser):
+    def add_parser(cls, parser: argparse.ArgumentParser) -> None:
         super().add_parser(parser)
         parser.add_argument("--source", "-s", required=True, help="Stream source")
         parser.add_argument(
@@ -37,7 +39,7 @@ class RTSPCam(UnifiCamBase):
             help="HTTP endpoint to fetch snapshot image from",
         )
 
-    def start_snapshot_stream(self):
+    def start_snapshot_stream(self) -> None:
         if not self.snapshot_stream or self.snapshot_stream.poll() is not None:
             cmd = f'ffmpeg -nostdin -y -re -rtsp_transport {self.args.rtsp_transport} -i "{self.args.source}" -vf fps=1 -update 1 {self.snapshot_dir}/screen.jpg'
             self.logger.info(f"Spawning stream for snapshots: {cmd}")
@@ -45,7 +47,7 @@ class RTSPCam(UnifiCamBase):
                 cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True
             )
 
-    async def get_snapshot(self):
+    async def get_snapshot(self) -> Path:
         img_file = Path(self.snapshot_dir, "screen.jpg")
         if self.args.snapshot_url:
             await self.fetch_to_file(self.args.snapshot_url, img_file)
@@ -53,7 +55,7 @@ class RTSPCam(UnifiCamBase):
             self.start_snapshot_stream()
         return img_file
 
-    async def run(self):
+    async def run(self) -> None:
         if self.args.http_api:
             self.logger.info(f"Enabling HTTP API on port {self.args.http_api}")
 
@@ -77,7 +79,7 @@ class RTSPCam(UnifiCamBase):
             site = web.TCPSite(self.runner, port=self.args.http_api)
             await site.start()
 
-    async def close(self):
+    async def close(self) -> None:
         await super().close()
         if self.runner:
             await self.runner.cleanup()
@@ -85,5 +87,5 @@ class RTSPCam(UnifiCamBase):
         if self.snapshot_stream:
             self.snapshot_stream.kill()
 
-    def get_stream_source(self, stream_index: str):
+    def get_stream_source(self, stream_index: str) -> str:
         return self.args.source

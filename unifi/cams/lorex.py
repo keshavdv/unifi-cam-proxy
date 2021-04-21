@@ -1,3 +1,5 @@
+import argparse
+import logging
 import tempfile
 from pathlib import Path
 
@@ -8,17 +10,17 @@ from unifi.cams.base import UnifiCamBase
 
 
 class LorexCam(UnifiCamBase):
-    @classmethod
-    def add_parser(self, parser):
-        super(LorexCam, self).add_parser(parser)
-        parser.add_argument("--username", "-u", required=True, help="Camera username")
-        parser.add_argument("--password", "-p", required=True, help="Camera password")
-
-    def __init__(self, args, logger=None):
+    def __init__(self, args: argparse.Namespace, logger: logging.Logger) -> None:
         super().__init__(args, logger)
         self.snapshot_dir = tempfile.mkdtemp()
 
-    async def get_snapshot(self):
+    @classmethod
+    def add_parser(cls, parser: argparse.ArgumentParser) -> None:
+        super().add_parser(parser)
+        parser.add_argument("--username", "-u", required=True, help="Camera username")
+        parser.add_argument("--password", "-p", required=True, help="Camera password")
+
+    async def get_snapshot(self) -> Path:
         img_file = Path(self.snapshot_dir, "screen.jpg")
         await self.fetch_to_file(
             f"http://{self.args.username}:{self.args.password}@{self.args.ip}/cgi-bin/snapshot.cgi",
@@ -26,7 +28,7 @@ class LorexCam(UnifiCamBase):
         )
         return img_file
 
-    async def run(self):
+    async def run(self) -> None:
         url = URL(
             f"http://{self.args.username}:{self.args.password}@{self.args.ip}/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]",
             encoded=True,
@@ -60,7 +62,7 @@ class LorexCam(UnifiCamBase):
             except aiohttp.ClientError:
                 self.logger.error("Motion API request failed, retrying")
 
-    def get_stream_source(self, stream_index: str):
+    def get_stream_source(self, stream_index: str) -> str:
         channel = 0
         if stream_index != "video1":
             channel = 2

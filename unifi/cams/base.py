@@ -1,3 +1,4 @@
+import argparse
 import atexit
 import json
 import logging
@@ -28,12 +29,9 @@ class SmartDetectObjectType(Enum):
 
 
 class UnifiCamBase(metaclass=ABCMeta):
-    def __init__(self, args, logger=None):
+    def __init__(self, args: argparse.Namespace, logger: logging.Logger) -> None:
         self.args = args
-        if logger is None:
-            self.logger = logging.getLogger(__class__)
-        else:
-            self.logger = logger
+        self.logger = logger
 
         self._msg_id: int = 0
         self._init_time: float = time.time()
@@ -52,7 +50,7 @@ class UnifiCamBase(metaclass=ABCMeta):
         atexit.register(self.close_streams)
 
     @classmethod
-    def add_parser(cls, parser):
+    def add_parser(cls, parser: argparse.ArgumentParser) -> None:
         parser.add_argument(
             "--ffmpeg-args",
             "-f",
@@ -66,7 +64,7 @@ class UnifiCamBase(metaclass=ABCMeta):
             help="RTSP transport protocol used by stream",
         )
 
-    async def _run(self, ws):
+    async def _run(self, ws) -> None:
         self._session = ws
         await self.init_adoption()
         while True:
@@ -81,34 +79,21 @@ class UnifiCamBase(metaclass=ABCMeta):
                     self.logger.info("Reconnecting...")
                     raise RetryableError()
 
-    async def run(self):
+    async def run(self) -> None:
         pass
 
-    def get_video_settings(self):
+    def get_video_settings(self) -> Dict[str, Any]:
         return {}
 
-    def change_video_settings(self, options):
+    def change_video_settings(self, options) -> None:
         pass
 
     @abstractmethod
-    async def get_snapshot(self):
+    async def get_snapshot(self) -> Path:
         raise NotImplementedError("You need to write this!")
 
     @abstractmethod
-    def get_stream_source(self, stream_index: str):
-        raise NotImplementedError("You need to write this!")
-
-    @abstractmethod
-    def start_video_stream(
-        self, stream_index: str, stream_name: str, destination: Tuple[str, int]
-    ):
-        raise NotImplementedError("You need to write this!")
-
-    @abstractmethod
-    def stop_video_stream(
-        self,
-        stream_index: str,
-    ):
+    def get_stream_source(self, stream_index: str) -> str:
         raise NotImplementedError("You need to write this!")
 
     def get_feature_flags(self) -> Dict[str, Any]:
@@ -121,7 +106,7 @@ class UnifiCamBase(metaclass=ABCMeta):
         self, object_type: Optional[SmartDetectObjectType] = None
     ) -> None:
         if not self._motion_event_ts:
-            payload = {
+            payload: Dict[str, Any] = {
                 "clockBestMonotonic": 0,
                 "clockBestWall": 0,
                 "clockMonotonic": int(self.get_uptime()),
@@ -145,6 +130,7 @@ class UnifiCamBase(metaclass=ABCMeta):
                     }
                 )
 
+            self.logger.info(f"Triggering motion start (idx: {self._motion_event_id})")
             await self.send(
                 self.gen_response(
                     "EventSmartDetect" if object_type else "EventAnalytics",
@@ -159,10 +145,11 @@ class UnifiCamBase(metaclass=ABCMeta):
     async def trigger_motion_stop(
         self, object_type: Optional[SmartDetectObjectType] = None
     ) -> None:
-        if self._motion_event_ts:
-            payload = {
+        motion_start_ts = self._motion_event_ts
+        if motion_start_ts:
+            payload: Dict[str, Any] = {
                 "clockBestMonotonic": int(self.get_uptime()),
-                "clockBestWall": int(round(self._motion_event_ts * 1000)),
+                "clockBestWall": int(round(motion_start_ts * 1000)),
                 "clockMonotonic": int(self.get_uptime()),
                 "clockStream": int(self.get_uptime()),
                 "clockStreamRate": 1000,
@@ -183,7 +170,7 @@ class UnifiCamBase(metaclass=ABCMeta):
                         "smartDetectSnapshot": f"motionsnap.jpg",
                     }
                 )
-
+            self.logger.info(f"Triggering motion stop (idx: {self._motion_event_id})")
             await self.send(
                 self.gen_response(
                     "EventSmartDetect" if object_type else "EventAnalytics",
@@ -193,7 +180,7 @@ class UnifiCamBase(metaclass=ABCMeta):
             self._motion_event_id += 1
             self._motion_event_ts = None
 
-    async def fetch_to_file(self, url: str, dst: Path):
+    async def fetch_to_file(self, url: str, dst: Path) -> bool:
         try:
             async with aiohttp.request("GET", url) as resp:
                 with dst.open("wb") as f:

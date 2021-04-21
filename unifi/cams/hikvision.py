@@ -1,5 +1,8 @@
+import argparse
+import logging
 import tempfile
 from pathlib import Path
+from typing import Any, Dict
 
 import xmltodict
 from hikvisionapi import Client
@@ -8,7 +11,7 @@ from unifi.cams.base import UnifiCamBase
 
 
 class HikvisionCam(UnifiCamBase):
-    def __init__(self, args, logger=None):
+    def __init__(self, args: argparse.Namespace, logger: logging.Logger) -> None:
         super().__init__(args, logger)
         self.snapshot_dir = tempfile.mkdtemp()
         self.streams = {}
@@ -17,12 +20,12 @@ class HikvisionCam(UnifiCamBase):
         )
 
     @classmethod
-    def add_parser(self, parser):
+    def add_parser(cls, parser: argparse.ArgumentParser) -> None:
         super().add_parser(parser)
         parser.add_argument("--username", "-u", required=True, help="Camera username")
         parser.add_argument("--password", "-p", required=True, help="Camera password")
 
-    async def get_snapshot(self):
+    async def get_snapshot(self) -> Path:
         img_file = Path(self.snapshot_dir, "screen.jpg")
 
         resp = self.cam.Streaming.channels[102].picture(
@@ -34,7 +37,7 @@ class HikvisionCam(UnifiCamBase):
                     f.write(chunk)
         return img_file
 
-    def get_video_settings(self):
+    def get_video_settings(self) -> Dict[str, Any]:
         r = self.cam.PTZCtrl.channels[1].status(method="get")["PTZStatus"][
             "AbsoluteHigh"
         ]
@@ -47,7 +50,7 @@ class HikvisionCam(UnifiCamBase):
             "hue": int(100 * int(r["absoluteZoom"]) / 40),
         }
 
-    def change_video_settings(self, options):
+    def change_video_settings(self, options: Dict[str, Any]) -> None:
         tilt = int((900 * int(options["brightness"])) / 100)
         pan = int((3600 * int(options["contrast"])) / 100)
         zoom = int((40 * int(options["hue"])) / 100)
@@ -68,7 +71,7 @@ class HikvisionCam(UnifiCamBase):
             method="put", data=xmltodict.unparse(req, pretty=True)
         )
 
-    def get_stream_source(self, stream_index: str):
+    def get_stream_source(self, stream_index: str) -> str:
         channel = 1
         if stream_index != "video1":
             channel = 3
