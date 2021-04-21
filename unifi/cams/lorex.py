@@ -1,4 +1,5 @@
 import tempfile
+from pathlib import Path
 
 import aiohttp
 from yarl import URL
@@ -18,18 +19,11 @@ class LorexCam(UnifiCamBase):
         self.snapshot_dir = tempfile.mkdtemp()
 
     async def get_snapshot(self):
-        img_file = "{}/screen.jpg".format(self.snapshot_dir)
-        url = f"http://{self.args.username}:{self.args.password}@{self.args.ip}/cgi-bin/snapshot.cgi"
-        try:
-            async with aiohttp.request("GET", url) as resp:
-                with open(img_file, "wb") as f:
-                    while True:
-                        chunk = await resp.content.read(1024)
-                        if not chunk:
-                            break
-                        f.write(chunk)
-        except aiohttp.ClientError:
-            self.logger.error("Failed to get snapshot")
+        img_file = Path(self.snapshot_dir, "screen.jpg")
+        await self.fetch_to_file(
+            f"http://{self.args.username}:{self.args.password}@{self.args.ip}/cgi-bin/snapshot.cgi",
+            img_file,
+        )
         return img_file
 
     async def run(self):
@@ -44,6 +38,9 @@ class LorexCam(UnifiCamBase):
                     timeout=aiohttp.ClientTimeout(None)
                 ) as session:
                     async with session.request("GET", url) as resp:
+                        # The multipart respones on this endpoint
+                        # are not properly formatted, so this
+                        # is implemented manually
                         while True:
                             line = (await resp.content.readline()).decode()
                             if line.startswith("Code="):

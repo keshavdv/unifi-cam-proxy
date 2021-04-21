@@ -2,12 +2,16 @@ import atexit
 import json
 import logging
 import os
+import shutil
 import ssl
 import subprocess
 import sys
+import tempfile
 import time
 import urllib
 from abc import ABCMeta, abstractmethod
+from enum import Enum
+from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 import aiohttp
@@ -18,6 +22,11 @@ from unifi.core import RetryableError
 AVClientRequest = AVClientResponse = Dict[str, Any]
 
 
+class SmartDetectObjectType(Enum):
+    PERSON = "person"
+    CAR = "car"
+
+
 class UnifiCamBase(metaclass=ABCMeta):
     def __init__(self, args, logger=None):
         self.args = args
@@ -26,11 +35,12 @@ class UnifiCamBase(metaclass=ABCMeta):
         else:
             self.logger = logger
 
-        self._msg_id = 0
-        self._init_time = time.time()
-        self._streams = {}
-        self._motion_event_id = 0
-        self._motion_event_active = False
+        self._msg_id: int = 0
+        self._init_time: float = time.time()
+        self._streams: Dict[str, str] = {}
+        self._motion_snapshot = None
+        self._motion_event_id: int = 0
+        self._motion_event_ts: Optional[float] = None
         self._ffmpeg_handles = {}
 
         # Set up ssl context for requests
@@ -101,53 +111,96 @@ class UnifiCamBase(metaclass=ABCMeta):
     ):
         raise NotImplementedError("You need to write this!")
 
+    def get_feature_flags(self) -> Dict[str, Any]:
+        return {
+            "mic": True,
+        }
+
     ### API for subclasses
-    async def trigger_motion_start(self) -> None:
-        if not self._motion_event_active:
+    async def trigger_motion_start(
+        self, object_type: Optional[SmartDetectObjectType] = None
+    ) -> None:
+        if not self._motion_event_ts:
+            payload = {
+                "clockBestMonotonic": 0,
+                "clockBestWall": 0,
+                "clockMonotonic": int(self.get_uptime()),
+                "clockStream": int(self.get_uptime()),
+                "clockStreamRate": 1000,
+                "clockWall": int(round(time.time() * 1000)),
+                "edgeType": "start",
+                "eventId": self._motion_event_id,
+                "eventType": "motion",
+                "levels": {"0": 47},
+                "motionHeatmap": "",
+                "motionSnapshot": "",
+            }
+            if object_type:
+                payload.update(
+                    {
+                        "objectTypes": [object_type.value],
+                        "edgeType": "enter",
+                        "zonesStatus": {"0": 48},
+                        "smartDetectSnapshot": "",
+                    }
+                )
+
             await self.send(
                 self.gen_response(
-                    "EventAnalytics",
-                    payload={
-                        "clockBestMonotonic": 0,
-                        "clockBestWall": 0,
-                        "clockMonotonic": int(self.get_uptime()),
-                        "clockStream": int(self.get_uptime()),
-                        "clockStreamRate": 1000,
-                        "clockWall": int(round(time.time() * 1000)),
-                        "edgeType": "start",
-                        "eventId": self._motion_event_id,
-                        "eventType": "motion",
-                        "levels": {"0": 47},
-                        "motionHeatmap": "",
-                        "motionSnapshot": "",
-                    },
+                    "EventSmartDetect" if object_type else "EventAnalytics",
+                    payload=payload,
                 ),
             )
-            self._motion_event_active = True
+            self._motion_event_ts = time.time()
+            self._motion_snapshot = shutil.copyfile(
+                await self.get_snapshot(), tempfile.NamedTemporaryFile(delete=True).name
+            )
 
-    async def trigger_motion_stop(self) -> None:
-        if self._motion_event_active:
+    async def trigger_motion_stop(
+        self, object_type: Optional[SmartDetectObjectType] = None
+    ) -> None:
+        if self._motion_event_ts:
+            payload = {
+                "clockBestMonotonic": int(self.get_uptime()),
+                "clockBestWall": int(round(self._motion_event_ts * 1000)),
+                "clockMonotonic": int(self.get_uptime()),
+                "clockStream": int(self.get_uptime()),
+                "clockStreamRate": 1000,
+                "clockWall": int(round(time.time() * 1000)),
+                "edgeType": "stop",
+                "eventId": self._motion_event_id,
+                "eventType": "motion",
+                "levels": {"0": 49},
+                "motionHeatmap": f"heatmap.png",
+                "motionSnapshot": f"motionsnap.jpg",
+            }
+            if object_type:
+                payload.update(
+                    {
+                        "objectTypes": [object_type.value],
+                        "edgeType": "leave",
+                        "zonesStatus": {"0": 48},
+                        "smartDetectSnapshot": f"motionsnap.jpg",
+                    }
+                )
+
             await self.send(
                 self.gen_response(
-                    "EventAnalytics",
-                    payload={
-                        "clockBestMonotonic": int(self.get_uptime()),
-                        "clockBestWall": 1618540558190,
-                        "clockMonotonic": int(self.get_uptime()),
-                        "clockStream": int(self.get_uptime()),
-                        "clockStreamRate": 1000,
-                        "clockWall": int(round(time.time() * 1000)),
-                        "edgeType": "stop",
-                        "eventId": self._motion_event_id,
-                        "eventType": "motion",
-                        "levels": {"0": 49},
-                        "motionHeatmap": f"heatmap_00000{self._motion_event_id}.png",
-                        "motionSnapshot": f"motionsnap_00000{self._motion_event_id}.jpg",
-                    },
+                    "EventSmartDetect" if object_type else "EventAnalytics",
+                    payload=payload,
                 ),
             )
             self._motion_event_id += 1
-            self._motion_event_active = False
+            self._motion_event_ts = None
+
+    async def fetch_to_file(self, url: str, dst: Path):
+        try:
+            async with aiohttp.request("GET", url) as resp:
+                with dst.open("wb") as f:
+                    f.write(await resp.read())
+                    return True
+        except aiohttp.ClientError:
+            return False
 
     ### Protocol implementation
 
@@ -179,7 +232,7 @@ class UnifiCamBase(metaclass=ABCMeta):
                     "totalLoad": 0.5474,
                     "upgradeTimeoutSec": 150,
                     "uptime": self.get_uptime(),
-                    "features": {"mic": True},
+                    "features": self.get_feature_flags(),
                 },
             ),
         )
@@ -188,7 +241,10 @@ class UnifiCamBase(metaclass=ABCMeta):
         return self.gen_response(
             "ubnt_avclient_paramAgreement",
             msg["messageId"],
-            {"authToken": self.args.token, "features": {"mic": True}},
+            {
+                "authToken": self.args.token,
+                "features": self.get_feature_flags(),
+            },
         )
 
     async def process_upgrade(self, msg: AVClientRequest) -> None:
@@ -687,8 +743,13 @@ class UnifiCamBase(metaclass=ABCMeta):
     async def process_snapshot_request(
         self, msg: AVClientRequest
     ) -> Optional[AVClientResponse]:
+        snapshot_type = msg["payload"]["what"]
+        contents = None
+        if snapshot_type in ["motionSnapshot", "smartDetectZoneSnapshot"]:
+            path = self._motion_snapshot
+        else:
+            path = await self.get_snapshot()
 
-        path = await self.get_snapshot()
         if os.path.isfile(path):
             async with aiohttp.ClientSession() as session:
                 files = {"payload": open(path, "rb")}
@@ -699,6 +760,7 @@ class UnifiCamBase(metaclass=ABCMeta):
                         data=files,
                         ssl=self._ssl_context,
                     )
+                    self.logger.debug(f"Uploaded {snapshot_type} from {path}")
                 except aiohttp.ClientError:
                     self.logger.exception("Failed to upload snapshot")
         else:
@@ -793,6 +855,10 @@ class UnifiCamBase(metaclass=ABCMeta):
         elif fn == "UpdateUsernamePassword":
             res = self.gen_response(
                 "UpdateUsernamePassword", response_to=m["messageId"]
+            )
+        elif fn == "ChangeSmartDetectSettings":
+            res = self.gen_response(
+                "ChangeSmartDetectSettings", response_to=m["messageId"]
             )
         elif fn == "UpdateFirmwareRequest":
             await self.process_upgrade(m)

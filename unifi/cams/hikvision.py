@@ -1,4 +1,5 @@
 import tempfile
+from pathlib import Path
 
 import xmltodict
 from hikvisionapi import Client
@@ -22,11 +23,12 @@ class HikvisionCam(UnifiCamBase):
         parser.add_argument("--password", "-p", required=True, help="Camera password")
 
     async def get_snapshot(self):
-        img_file = "{}/screen.jpg".format(self.snapshot_dir)
+        img_file = Path(self.snapshot_dir, "screen.jpg")
+
         resp = self.cam.Streaming.channels[102].picture(
             method="get", type="opaque_data"
         )
-        with open(img_file, "wb") as f:
+        with img_file.open("wb") as f:
             for chunk in resp.iter_content(chunk_size=1024):
                 if chunk:
                     f.write(chunk)

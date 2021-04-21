@@ -1,5 +1,6 @@
 import subprocess
 import tempfile
+from pathlib import Path
 
 from aiohttp import web
 
@@ -14,6 +15,8 @@ class RTSPCam(UnifiCamBase):
         self.snapshot_dir = tempfile.mkdtemp()
         self.snapshot_stream = None
         self.runner = None
+        if not self.args.snapshot_url:
+            self.start_snapshot_stream()
 
     @classmethod
     def add_parser(self, parser):
@@ -25,15 +28,30 @@ class RTSPCam(UnifiCamBase):
             type=int,
             help="Specify a port number to enable the HTTP API (default: disabled)",
         )
+        parser.add_argument(
+            "--snapshot-url",
+            "-i",
+            default=None,
+            type=str,
+            required=False,
+            help="HTTP endpoint to fetch snapshot image from",
+        )
 
-    async def get_snapshot(self):
+    def start_snapshot_stream(self):
         if not self.snapshot_stream or self.snapshot_stream.poll() is not None:
             cmd = f'ffmpeg -nostdin -y -re -rtsp_transport {self.args.rtsp_transport} -i "{self.args.source}" -vf fps=1 -update 1 {self.snapshot_dir}/screen.jpg'
             self.logger.info(f"Spawning stream for snapshots: {cmd}")
             self.snapshot_stream = subprocess.Popen(
                 cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True
             )
-        return "{}/screen.jpg".format(self.snapshot_dir)
+
+    async def get_snapshot(self):
+        img_file = Path(self.snapshot_dir, "screen.jpg")
+        if self.args.snapshot_url:
+            await self.fetch_to_file(self.args.snapshot_url, img_file)
+        else:
+            self.start_snapshot_stream()
+        return img_file
 
     async def run(self):
         if self.args.http_api:

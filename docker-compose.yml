@@ -48,3 +48,11 @@ services:
         - PUID_POSTGRES=102
         - PGID_POSTGRES=104
     image: fryfrog/unifi-protect
+
+  frigate:
+    shm_size: '1g'
+    image: blakeblackshear/frigate:stable-amd64
+    volumes:
+      - ./run/frigate:/config
+    ports:
+      - "5000:5000"

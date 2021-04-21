@@ -6,13 +6,14 @@ from shutil import which
 
 import coloredlogs
 
-from unifi.cams import HikvisionCam, LorexCam, RTSPCam
+from unifi.cams import FrigateCam, HikvisionCam, LorexCam, RTSPCam
 from unifi.core import Core
 
 CAMS = {
     "hikvision": HikvisionCam,
     "lorex": LorexCam,
     "rtsp": RTSPCam,
+    "frigate": FrigateCam,
 }
 
 
