@@ -50,9 +50,16 @@ services:
     image: fryfrog/unifi-protect
 
   frigate:
-    shm_size: '1g'
     image: blakeblackshear/frigate:stable-amd64
+    privileged: true # this may not be necessary for all setups
+    devices:
+      - /dev/dri/renderD128 # for intel hwaccel, needs to be updated for your hardware
     volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - type: tmpfs # Optional: 1GB of memory, reduces SSD/SD Card wear
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
       - ./run/frigate:/config
     ports:
       - "5000:5000"

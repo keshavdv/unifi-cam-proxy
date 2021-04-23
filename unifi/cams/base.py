@@ -180,6 +180,9 @@ class UnifiCamBase(metaclass=ABCMeta):
             self._motion_event_id += 1
             self._motion_event_ts = None
 
+    def update_motion_snapshot(self, path: Path) -> None:
+        self._motion_snapshot = path
+
     async def fetch_to_file(self, url: str, dst: Path) -> bool:
         try:
             async with aiohttp.request("GET", url) as resp:
