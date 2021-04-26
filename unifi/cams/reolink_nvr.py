@@ -57,16 +57,12 @@ class ReolinkNVRCam(UnifiCamBase):
                       if json_body[0]["value"]["state"] == 1:
                         if not self.motion_in_progress:
                           self.motion_in_progress = True
-                          self.logger.info(
-                              f"Trigger motion start"
-                          )
+                          self.logger.info("Trigger motion start")
                           await self.trigger_motion_start()
                       elif json_body[0]["value"]["state"] == 0:
                         if self.motion_in_progress:
                           self.motion_in_progress = False
-                          self.logger.info(
-                              f"Trigger motion end"
-                          )
+                          self.logger.info("Trigger motion end")
                           await self.trigger_motion_stop()
 
             except aiohttp.ClientError as err:
