@@ -93,7 +93,7 @@ def main():
 
     # Preflight checks
     if which("ffmpeg") is None:
-        self.logger.error("ffmpeg is not installed")
+        logger.error("ffmpeg is not installed")
         sys.exit(1)
 
     cam = klass(args, logger)
