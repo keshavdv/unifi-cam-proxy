@@ -6,14 +6,15 @@ from shutil import which
 
 import coloredlogs
 
-from unifi.cams import FrigateCam, HikvisionCam, LorexCam, RTSPCam
+from unifi.cams import FrigateCam, HikvisionCam, LorexCam, ReolinkNVRCam, RTSPCam
 from unifi.core import Core
 
 CAMS = {
+	"frigate": FrigateCam,
     "hikvision": HikvisionCam,
     "lorex": LorexCam,
+	"reolink_nvr": ReolinkNVRCam,
     "rtsp": RTSPCam,
-    "frigate": FrigateCam,
 }
 
 
@@ -92,7 +93,7 @@ def main():
 
     # Preflight checks
     if which("ffmpeg") is None:
-        self.logger.error("ffmpeg is not installed")
+        logger.error("ffmpeg is not installed")
         sys.exit(1)
 
     cam = klass(args, logger)

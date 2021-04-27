@@ -60,3 +60,9 @@ unifi-cam-proxy --host <NVR IP> --mac 'AA:BB:CC:33:44:55' --cert client.pem --to
     ```
     unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> hikvision -u <username> -p <password>
     ```
+
+2. Reolink NVR Cameras (Reolink RLN16-410): Adds motion events
+Note: Camera/channel IDs are zero-based    
+```
+    unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> reolink_nvr -u <username> -p <password> -c <camera_id>
+```
