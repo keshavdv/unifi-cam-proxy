@@ -1,8 +1,7 @@
-import tempfile
-
 import aiohttp
 import json
-
+from pathlib import Path
+import tempfile
 from yarl import URL
 
 from unifi.cams.base import UnifiCamBase
@@ -22,7 +21,7 @@ class ReolinkNVRCam(UnifiCamBase):
         self.motion_in_progress = False
 
     async def get_snapshot(self):
-        img_file = "{}/screen.jpg".format(self.snapshot_dir)
+        img_file = Path(self.snapshot_dir, "screen.jpg")
         url = f"http://{self.args.ip}/api.cgi?cmd=Snap&user={self.args.username}&password={self.args.password}&rs=6PHVjvf0UntSLbyT&channel={self.args.channel}"
         await self.fetch_to_file(url, img_file)
         return img_file
