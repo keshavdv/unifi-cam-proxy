@@ -24,16 +24,7 @@ class ReolinkNVRCam(UnifiCamBase):
     async def get_snapshot(self):
         img_file = "{}/screen.jpg".format(self.snapshot_dir)
         url = f"http://{self.args.ip}/api.cgi?cmd=Snap&user={self.args.username}&password={self.args.password}&rs=6PHVjvf0UntSLbyT&channel={self.args.channel}"
-        try:
-            async with aiohttp.request("GET", url) as resp:
-                with open(img_file, "wb") as f:
-                    while True:
-                        chunk = await resp.content.read(1024)
-                        if not chunk:
-                            break
-                        f.write(chunk)
-        except aiohttp.ClientError:
-            self.logger.error("Failed to get snapshot")
+        await self.fetch_to_file(url, img_file)
         return img_file
 
     async def run(self):
