@@ -29,10 +29,13 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Lint with flake8
       run: |
+        source venv/bin/activate
         flake8 --show-source --statistics
     - name: Check imports with isort
       run: |
+        source venv/bin/activate
         isort . --check-only --diff
     - name: Run Pyre
       run: |
+        source venv/bin/activate
         pyre check
