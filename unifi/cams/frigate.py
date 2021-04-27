@@ -109,7 +109,7 @@ class FrigateCam(RTSPCam):
                     f = tempfile.NamedTemporaryFile()
                     f.write(message.payload)
                     self.logger.debug(
-                        f"Updating snapshot for {self.event_label} with {f.name} ({len(message.payload)})"
+                        f"Updating snapshot for {self.event_label} with {f.name}"
                     )
                     self.update_motion_snapshot(Path(f.name))
                     self.event_snapshot_ready.set()

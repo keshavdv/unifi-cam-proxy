@@ -10,10 +10,10 @@ from unifi.cams import FrigateCam, HikvisionCam, LorexCam, ReolinkNVRCam, RTSPCa
 from unifi.core import Core
 
 CAMS = {
-	"frigate": FrigateCam,
+    "frigate": FrigateCam,
     "hikvision": HikvisionCam,
     "lorex": LorexCam,
-	"reolink_nvr": ReolinkNVRCam,
+    "reolink_nvr": ReolinkNVRCam,
     "rtsp": RTSPCam,
 }
 

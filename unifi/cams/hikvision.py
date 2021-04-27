@@ -76,4 +76,7 @@ class HikvisionCam(UnifiCamBase):
         if stream_index != "video1":
             channel = 3
 
-        return f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}:554/Streaming/Channels/{channel}/"
+        return (
+            f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}:554"
+            f"/Streaming/Channels/{channel}/"
+        )

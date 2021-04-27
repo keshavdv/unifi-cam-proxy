@@ -101,7 +101,7 @@ class UnifiCamBase(metaclass=ABCMeta):
             "mic": True,
         }
 
-    ### API for subclasses
+    # API for subclasses
     async def trigger_motion_start(
         self, object_type: Optional[SmartDetectObjectType] = None
     ) -> None:
@@ -158,8 +158,8 @@ class UnifiCamBase(metaclass=ABCMeta):
                 "eventId": self._motion_event_id,
                 "eventType": "motion",
                 "levels": {"0": 49},
-                "motionHeatmap": f"heatmap.png",
-                "motionSnapshot": f"motionsnap.jpg",
+                "motionHeatmap": "heatmap.png",
+                "motionSnapshot": "motionsnap.jpg",
             }
             if object_type:
                 payload.update(
@@ -167,7 +167,7 @@ class UnifiCamBase(metaclass=ABCMeta):
                         "objectTypes": [object_type.value],
                         "edgeType": "leave",
                         "zonesStatus": {"0": 48},
-                        "smartDetectSnapshot": f"motionsnap.jpg",
+                        "smartDetectSnapshot": "motionsnap.jpg",
                     }
                 )
             self.logger.info(f"Triggering motion stop (idx: {self._motion_event_id})")
@@ -192,15 +192,14 @@ class UnifiCamBase(metaclass=ABCMeta):
         except aiohttp.ClientError:
             return False
 
-    ### Protocol implementation
-
+    # Protocol implementation
     def gen_msg_id(self) -> int:
         self._msg_id += 1
         return self._msg_id
 
     async def init_adoption(self) -> None:
         self.logger.info(
-            f"Initiating adoption with token [{self.args.token}] and mac [{self.args.mac}]"
+            f"Adopting with token [{self.args.token}] and mac [{self.args.mac}]"
         )
         await self.send(
             self.gen_response(
@@ -734,7 +733,6 @@ class UnifiCamBase(metaclass=ABCMeta):
         self, msg: AVClientRequest
     ) -> Optional[AVClientResponse]:
         snapshot_type = msg["payload"]["what"]
-        contents = None
         if snapshot_type in ["motionSnapshot", "smartDetectZoneSnapshot"]:
             path = self._motion_snapshot
         else:
@@ -773,8 +771,10 @@ class UnifiCamBase(metaclass=ABCMeta):
         )
 
     def gen_response(
-        self, name: str, response_to: int = 0, payload: Dict[str, Any] = {}
+        self, name: str, response_to: int = 0, payload: Optional[Dict[str, Any]] = None
     ) -> AVClientResponse:
+        if not payload:
+            payload = {}
         return {
             "from": "ubnt_avclient",
             "functionName": name,
@@ -803,7 +803,7 @@ class UnifiCamBase(metaclass=ABCMeta):
 
         if (
             ("responseExpected" not in m)
-            or (m["responseExpected"] == False)
+            or (m["responseExpected"] is False)
             and (
                 fn
                 not in [
@@ -869,7 +869,14 @@ class UnifiCamBase(metaclass=ABCMeta):
             or self._ffmpeg_handles[stream_index].poll() is not None
         ):
             source = self.get_stream_source(stream_index)
-            cmd = f'ffmpeg -nostdin -y -stimeout 15000000 -rtsp_transport {self.args.rtsp_transport} -i "{source}" {self.args.ffmpeg_args} -metadata streamname={stream_name} -f flv - | {sys.executable} -m unifi.clock_sync | nc {destination[0]} {destination[1]}'
+            cmd = (
+                "ffmpeg -nostdin -y -stimeout 15000000"
+                f" -rtsp_transport {self.args.rtsp_transport}"
+                f' -i "{source}" {self.args.ffmpeg_args}'
+                f" -metadata streamname={stream_name} -f flv -"
+                f" | {sys.executable} -m unifi.clock_sync"
+                f" | nc {destination[0]} {destination[1]}"
+            )
             self.logger.info(
                 f"Spawning ffmpeg for {stream_index} ({stream_name}): {cmd}"
             )
