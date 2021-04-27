@@ -54,7 +54,7 @@ class UnifiCamBase(metaclass=ABCMeta):
         parser.add_argument(
             "--ffmpeg-args",
             "-f",
-            default="-f lavfi -i aevalsrc=0  -vcodec copy -strict -2 -c:a aac",
+            default="-c:v copy -ar 32000 -ac 2 -codec:a aac -b:a 32k",
             help="Transcoding args for `ffmpeg -i <src> <args> <dst>`",
         )
         parser.add_argument(
@@ -869,7 +869,7 @@ class UnifiCamBase(metaclass=ABCMeta):
             or self._ffmpeg_handles[stream_index].poll() is not None
         ):
             source = self.get_stream_source(stream_index)
-            cmd = f'ffmpeg -nostdin -y -rtsp_transport {self.args.rtsp_transport} -i "{source}" {self.args.ffmpeg_args} -metadata streamname={stream_name} -f flv - | {sys.executable} -m unifi.clock_sync | nc {destination[0]} {destination[1]}'
+            cmd = f'ffmpeg -nostdin -y -stimeout 15000000 -rtsp_transport {self.args.rtsp_transport} -i "{source}" {self.args.ffmpeg_args} -metadata streamname={stream_name} -f flv - | {sys.executable} -m unifi.clock_sync | nc {destination[0]} {destination[1]}'
             self.logger.info(
                 f"Spawning ffmpeg for {stream_index} ({stream_name}): {cmd}"
             )
