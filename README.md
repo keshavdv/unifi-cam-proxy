@@ -70,3 +70,8 @@ Note: Camera/channel IDs are zero-based
 ```
 unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> reolink_nvr -u <username> -p <password> -c <camera_id>
 ```
+
+3. Lorex (LNB4321B, likely also Dahua cameras): Adds motion events
+```
+unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> lorex -u <username> -p <password>
+```
