@@ -41,7 +41,12 @@ class RTSPCam(UnifiCamBase):
 
     def start_snapshot_stream(self) -> None:
         if not self.snapshot_stream or self.snapshot_stream.poll() is not None:
-            cmd = f'ffmpeg -nostdin -y -re -rtsp_transport {self.args.rtsp_transport} -i "{self.args.source}" -vf fps=1 -update 1 {self.snapshot_dir}/screen.jpg'
+            cmd = (
+                f"ffmpeg -nostdin -y -re -rtsp_transport {self.args.rtsp_transport} "
+                f'-i "{self .args.source} '
+                "-vf fps=1 "
+                "-update 1 {self.snapshot_dir}/screen.jpg"
+            )
             self.logger.info(f"Spawning stream for snapshots: {cmd}")
             self.snapshot_stream = subprocess.Popen(
                 cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True

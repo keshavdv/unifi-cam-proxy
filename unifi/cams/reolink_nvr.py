@@ -1,7 +1,8 @@
-import aiohttp
 import json
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
+import aiohttp
 from yarl import URL
 
 from unifi.cams.base import UnifiCamBase
@@ -22,41 +23,51 @@ class ReolinkNVRCam(UnifiCamBase):
 
     async def get_snapshot(self):
         img_file = Path(self.snapshot_dir, "screen.jpg")
-        url = f"http://{self.args.ip}/api.cgi?cmd=Snap&user={self.args.username}&password={self.args.password}&rs=6PHVjvf0UntSLbyT&channel={self.args.channel}"
+        url = (
+            f"http://{self.args.ip}"
+            f"/api.cgi?cmd=Snap&user={self.args.username}&password={self.args.password}"
+            f"&rs=6PHVjvf0UntSLbyT&channel={self.args.channel}"
+        )
         await self.fetch_to_file(url, img_file)
         return img_file
 
     async def run(self):
-        url = URL(
-            f"http://{self.args.ip}/api.cgi?user={self.args.username}&password={self.args.password}",
-            encoded=True,
+        url = (
+            f"http://{self.args.ip}"
+            f"/api.cgi?user={self.args.username}&password={self.args.password}"
         )
+        encoded_url = URL(url, encoded=True)
 
-        body = f'[{{ "cmd":"GetMdState", "param":{{ "channel":{self.args.channel} }} }}]'
+        body = (
+            f'[{{ "cmd":"GetMdState", "param":{{ "channel":{self.args.channel} }} }}]'
+        )
         while True:
             self.logger.info(f"Connecting to motion events API: {url}")
             try:
                 async with aiohttp.ClientSession(
                     timeout=aiohttp.ClientTimeout(None)
                 ) as session:
-                  while True:
-                    async with session.post(url, data=body) as resp:
-                      data = await resp.read()
-                      json_body = json.loads(data)
+                    while True:
+                        async with session.post(encoded_url, data=body) as resp:
+                            data = await resp.read()
+                            json_body = json.loads(data)
 
-                      if json_body[0]["value"]["state"] == 1:
-                        if not self.motion_in_progress:
-                          self.motion_in_progress = True
-                          self.logger.info("Trigger motion start")
-                          await self.trigger_motion_start()
-                      elif json_body[0]["value"]["state"] == 0:
-                        if self.motion_in_progress:
-                          self.motion_in_progress = False
-                          self.logger.info("Trigger motion end")
-                          await self.trigger_motion_stop()
+                            if json_body[0]["value"]["state"] == 1:
+                                if not self.motion_in_progress:
+                                    self.motion_in_progress = True
+                                    self.logger.info("Trigger motion start")
+                                    await self.trigger_motion_start()
+                            elif json_body[0]["value"]["state"] == 0:
+                                if self.motion_in_progress:
+                                    self.motion_in_progress = False
+                                    self.logger.info("Trigger motion end")
+                                    await self.trigger_motion_stop()
 
             except aiohttp.ClientError as err:
                 self.logger.error(f"Motion API request failed, retrying. Error: {err}")
 
     def get_stream_source(self, stream_index: str):
-      return f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}:554//h264Preview_{int(self.args.channel) + 1:02}_main"
+        return (
+            f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}:554"
+            f"/h264Preview_{int(self.args.channel) + 1:02}_main"
+        )

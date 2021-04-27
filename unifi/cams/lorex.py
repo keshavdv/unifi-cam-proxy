@@ -22,24 +22,26 @@ class LorexCam(UnifiCamBase):
 
     async def get_snapshot(self) -> Path:
         img_file = Path(self.snapshot_dir, "screen.jpg")
-        await self.fetch_to_file(
-            f"http://{self.args.username}:{self.args.password}@{self.args.ip}/cgi-bin/snapshot.cgi",
-            img_file,
+        url = (
+            f"http://{self.args.username}:{self.args.password}@{self.args.ip}"
+            f"/cgi-bin/snapshot.cgi"
         )
+        await self.fetch_to_file(url, img_file)
         return img_file
 
     async def run(self) -> None:
-        url = URL(
-            f"http://{self.args.username}:{self.args.password}@{self.args.ip}/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]",
-            encoded=True,
+        url = (
+            f"http://{self.args.username}:{self.args.password}@{self.args.ip}"
+            "/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]"
         )
+        encoded_url = URL(url, encoded=True)
         while True:
             self.logger.info(f"Connecting to motion events API: {url}")
             try:
                 async with aiohttp.ClientSession(
                     timeout=aiohttp.ClientTimeout(None)
                 ) as session:
-                    async with session.request("GET", url) as resp:
+                    async with session.request("GET", encoded_url) as resp:
                         # The multipart respones on this endpoint
                         # are not properly formatted, so this
                         # is implemented manually
@@ -67,4 +69,7 @@ class LorexCam(UnifiCamBase):
         if stream_index != "video1":
             channel = 2
 
-        return f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}/cam/realmonitor?channel=1&subtype={channel}"
+        return (
+            f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}"
+            f"/cam/realmonitor?channel=1&subtype={channel}"
+        )

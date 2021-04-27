@@ -1,5 +1,12 @@
 version: '3'
 services:
+  unifi-cam-proxy:
+    image:  keshavdv/unifi-cam-proxy
+    container_name: unifi-cam-proxy
+    volumes:
+      - ./client.pem:/client.pem
+      - ./:/code
+    command: bash -c "cd /code && pip install -e . && unifi-cam-proxy --help"
   unifi-video-controller:
     image:  pducharme/unifi-video-controller
     container_name: unifi-video-controller
@@ -23,8 +30,6 @@ services:
     cap_add:
       - SYS_ADMIN
       - DAC_READ_SEARCH
-# Uncomment security option below to set apparmor unconfined if "tmpfs is write-protected, mounting read-only" error is seen.
-# Known to happen on ubuntu, synology, and other platforms.
     security_opt:
       - apparmor:unconfined
   unifi-protect:
@@ -51,12 +56,10 @@ services:
 
   frigate:
     image: blakeblackshear/frigate:stable-amd64
-    privileged: true # this may not be necessary for all setups
-    devices:
-      - /dev/dri/renderD128 # for intel hwaccel, needs to be updated for your hardware
+    privileged: true
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - type: tmpfs # Optional: 1GB of memory, reduces SSD/SD Card wear
+      - type: tmpfs
         target: /tmp/cache
         tmpfs:
           size: 1000000000

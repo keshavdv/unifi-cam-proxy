@@ -141,7 +141,8 @@ def main():
             #   data["streamClock"] = int(timestamp)
             #   data["streamClockBase"] = 0
             #   data["wallClock"] = time.time() * 1000
-            #   packet_to_inject = flvlib.tags.create_script_tag("onClockSync", data, timestamp))
+            #   packet_to_inject = flvlib.tags.create_script_tag(
+            #       "onClockSync", data, timestamp))
 
             data = {
                 "streamClock": int(timestamp),
