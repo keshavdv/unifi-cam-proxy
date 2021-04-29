@@ -1,47 +1,43 @@
+import argparse
 import logging
-import os
-import subprocess
-import sys
-import shutil
-
 import tempfile
-import requests
+from pathlib import Path
+from typing import Any, Dict
+
 import xmltodict
-from requests.auth import HTTPDigestAuth
 from hikvisionapi import Client
 
 from unifi.cams.base import UnifiCamBase
 
-FNULL = open(os.devnull, "w")
-
 
 class HikvisionCam(UnifiCamBase):
+    def __init__(self, args: argparse.Namespace, logger: logging.Logger) -> None:
+        super().__init__(args, logger)
+        self.snapshot_dir = tempfile.mkdtemp()
+        self.streams = {}
+        self.cam = Client(
+            f"http://{self.args.ip}", self.args.username, self.args.password
+        )
+
     @classmethod
-    def add_parser(self, parser):
+    def add_parser(cls, parser: argparse.ArgumentParser) -> None:
+        super().add_parser(parser)
         parser.add_argument("--username", "-u", required=True, help="Camera username")
         parser.add_argument("--password", "-p", required=True, help="Camera password")
 
-    def __init__(self, args, logger=None):
-        self.logger = logger
-        self.args = args
-        self.dir = tempfile.mkdtemp()
-        self.streams = {}
-        self.cam = Client(
-            "http://{}".format(self.args.ip), self.args.username, self.args.password
-        )
+    async def get_snapshot(self) -> Path:
+        img_file = Path(self.snapshot_dir, "screen.jpg")
 
-    def get_snapshot(self):
-        img_file = "{}/screen.jpg".format(self.dir)
         resp = self.cam.Streaming.channels[102].picture(
             method="get", type="opaque_data"
         )
-        with open(img_file, "wb") as f:
+        with img_file.open("wb") as f:
             for chunk in resp.iter_content(chunk_size=1024):
                 if chunk:
                     f.write(chunk)
         return img_file
 
-    def get_video_settings(self):
+    def get_video_settings(self) -> Dict[str, Any]:
         r = self.cam.PTZCtrl.channels[1].status(method="get")["PTZStatus"][
             "AbsoluteHigh"
         ]
@@ -54,7 +50,7 @@ class HikvisionCam(UnifiCamBase):
             "hue": int(100 * int(r["absoluteZoom"]) / 40),
         }
 
-    def change_video_settings(self, options):
+    def change_video_settings(self, options: Dict[str, Any]) -> None:
         tilt = int((900 * int(options["brightness"])) / 100)
         pan = int((3600 * int(options["contrast"])) / 100)
         zoom = int((40 * int(options["hue"])) / 100)
@@ -75,23 +71,12 @@ class HikvisionCam(UnifiCamBase):
             method="put", data=xmltodict.unparse(req, pretty=True)
         )
 
-    def start_video_stream(self, stream_name, video_mode):
+    def get_stream_source(self, stream_index: str) -> str:
         channel = 1
-        if video_mode == "video3":
-            channel = 2
+        if stream_index != "video1":
+            channel = 3
 
-        vid_src = "rtsp://{}:{}@{}:554/Streaming/Channels/{}/".format(
-            self.args.username, self.args.password, self.args.ip, channel
+        return (
+            f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}:554"
+            f"/Streaming/Channels/{channel}/"
         )
-
-        cmd = 'ffmpeg -y -f lavfi -i aevalsrc=0 -i "{}" -vcodec copy -use_wallclock_as_timestamps 1 -strict -2 -c:a aac -metadata streamname={} -f flv - | {} -m unifi.clock_sync | nc {} 6666'.format(
-            vid_src, stream_name, sys.executable, self.args.host
-        )
-        self.logger.info("Spawning ffmpeg: %s", cmd)
-        if (
-            stream_name not in self.streams
-            or self.streams[stream_name].poll() is not None
-        ):
-            self.streams[stream_name] = subprocess.Popen(
-                cmd, stdout=FNULL, stderr=subprocess.STDOUT, shell=True
-            )

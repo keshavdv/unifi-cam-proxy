@@ -1,0 +1,12 @@
+{
+  "source_directories": [
+    "./"
+  ],
+  "exclude": [
+    "build/"
+  ],
+  "ignore_all_errors": [
+    "venv/"
+  ],
+  "taint_models_path": "stubs/taint"
+}

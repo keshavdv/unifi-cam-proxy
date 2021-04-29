@@ -1,65 +1,96 @@
+import argparse
 import logging
-import os
-import sys
 import subprocess
 import tempfile
+from pathlib import Path
+
+from aiohttp import web
 
 from unifi.cams.base import UnifiCamBase
 
-FNULL = open(os.devnull, "w")
-
 
 class RTSPCam(UnifiCamBase):
+    def __init__(self, args: argparse.Namespace, logger: logging.Logger) -> None:
+        super().__init__(args, logger)
+        self.args = args
+        self.event_id = 0
+        self.snapshot_dir = tempfile.mkdtemp()
+        self.snapshot_stream = None
+        self.runner = None
+        if not self.args.snapshot_url:
+            self.start_snapshot_stream()
+
     @classmethod
-    def add_parser(self, parser):
+    def add_parser(cls, parser: argparse.ArgumentParser) -> None:
+        super().add_parser(parser)
         parser.add_argument("--source", "-s", required=True, help="Stream source")
         parser.add_argument(
-            "--ffmpeg-args",
-            "-f",
-            default="-vcodec copy -strict -2 -c:a aac",
-            help="Transcoding args for `ffmpeg -i <src> <args> <dst>`",
+            "--http-api",
+            default=0,
+            type=int,
+            help="Specify a port number to enable the HTTP API (default: disabled)",
         )
         parser.add_argument(
-            "--rtsp-transport",
-            default="tcp",
-            choices=['tcp', 'udp', 'http', 'udp_multicast'],
-            help="RTSP transport protocol used by stream",
+            "--snapshot-url",
+            "-i",
+            default=None,
+            type=str,
+            required=False,
+            help="HTTP endpoint to fetch snapshot image from",
         )
 
-    def __init__(self, args, logger=None):
-        self.logger = logger
-        self.args = args
-        self.dir = tempfile.mkdtemp()
-        self.logger.info(self.dir)
-        cmd = 'ffmpeg -y -re -rtsp_transport {} -i "{}" -vf fps=1 -update 1 {}/screen.jpg'.format(
-            self.args.rtsp_transport,
-            self.args.source,
-            self.dir,
-        )
-        self.logger.info(cmd)
-        self.streams = {
-            "mjpg": subprocess.Popen(
-                cmd, stdout=FNULL, stderr=subprocess.STDOUT, shell=True
+    def start_snapshot_stream(self) -> None:
+        if not self.snapshot_stream or self.snapshot_stream.poll() is not None:
+            cmd = (
+                f"ffmpeg -nostdin -y -re -rtsp_transport {self.args.rtsp_transport} "
+                f'-i "{self .args.source} '
+                "-vf fps=1 "
+                "-update 1 {self.snapshot_dir}/screen.jpg"
             )
-        }
-
-    def get_snapshot(self):
-        return "{}/screen.jpg".format(self.dir)
-
-    def start_video_stream(self, stream_name, options):
-        cmd = 'ffmpeg -y -f lavfi -i aevalsrc=0 -rtsp_transport {} -i "{}" {} -metadata streamname={} -f flv - | {} -m unifi.clock_sync | nc {} 6666'.format(
-            self.args.rtsp_transport,
-            self.args.source,
-            self.args.ffmpeg_args,
-            stream_name,
-            sys.executable,
-            self.args.host,
-        )
-        self.logger.info("Spawning ffmpeg (%s): %s", stream_name, cmd)
-        if (
-            stream_name not in self.streams
-            or self.streams[stream_name].poll() is not None
-        ):
-            self.streams[stream_name] = subprocess.Popen(
-                cmd, stdout=FNULL, stderr=subprocess.STDOUT, shell=True
+            self.logger.info(f"Spawning stream for snapshots: {cmd}")
+            self.snapshot_stream = subprocess.Popen(
+                cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True
             )
+
+    async def get_snapshot(self) -> Path:
+        img_file = Path(self.snapshot_dir, "screen.jpg")
+        if self.args.snapshot_url:
+            await self.fetch_to_file(self.args.snapshot_url, img_file)
+        else:
+            self.start_snapshot_stream()
+        return img_file
+
+    async def run(self) -> None:
+        if self.args.http_api:
+            self.logger.info(f"Enabling HTTP API on port {self.args.http_api}")
+
+            app = web.Application()
+
+            async def start_motion(request):
+                self.logger.debug("Starting motion")
+                await self.trigger_motion_start()
+                return web.Response(text="ok")
+
+            async def stop_motion(request):
+                self.logger.debug("Starting motion")
+                await self.trigger_motion_stop()
+                return web.Response(text="ok")
+
+            app.add_routes([web.get("/start_motion", start_motion)])
+            app.add_routes([web.get("/stop_motion", stop_motion)])
+
+            self.runner = web.AppRunner(app)
+            await self.runner.setup()
+            site = web.TCPSite(self.runner, port=self.args.http_api)
+            await site.start()
+
+    async def close(self) -> None:
+        await super().close()
+        if self.runner:
+            await self.runner.cleanup()
+
+        if self.snapshot_stream:
+            self.snapshot_stream.kill()
+
+    def get_stream_source(self, stream_index: str) -> str:
+        return self.args.source
