@@ -22,12 +22,22 @@ Dependencies:
 
 ## Usage
 
-In order to use this, you must own at least one UniFi camera in order to obtain a valid client certificate (Found at `/var/etc/persistent/server.pem` via SSH).
+In order to use this, you'll need a client certificate. This can be acquired in one of two ways:
+
+1. If you have a UniFi camera: `scp ubnt@<your-unifi-cam>:/var/etc/persistent/server.pem client.pem`
+2. You can also create your own client certificate via:
+
+```
+openssl ecparam -out /tmp/private.key -name prime256v1 -genkey -noout
+openssl req -new -sha256 -key /tmp/private.key -out /tmp/server.csr -subj "/C=TW/L=Taipei/O=Ubiquiti Networks Inc./OU=devint/CN=camera.ubnt.dev/emailAddress=support@ubnt.com"
+openssl x509 -req -sha256 -days 36500 -in /tmp/server.csr -signkey /tmp/private.key -out /tmp/public.key
+cat /tmp/private.key /tmp/public.key > client.pem
+rm -f /tmp/private.key /tmp/public.key /tmp/server.csr
+```
 
 #### Running natively
 ```
 pip install unifi-cam-proxy
-scp ubnt@<your-unifi-cam>:/var/etc/persistent/server.pem client.pem
 # RTSP stream
 unifi-cam-proxy --host <NVR IP> --cert client.pem --token <Adoption token> rtsp -s rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_175k.mov
 ```
