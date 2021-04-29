@@ -44,7 +44,7 @@ unifi-cam-proxy --host <NVR IP> --cert client.pem --token <Adoption token> rtsp 
 
 #### Running with Docker
 ```
-docker run --rm -v "/full/path/to/cert.pem:/client.pem" keshavdv/unifi-cam-proxy unifi-cam-proxy --verbose --ip "<Camera IP>" --host <NVR IP> --cert /client.pem --token <Adoption token> lorex -u rtsp -s rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_175k.mov
+docker run --rm -v "/full/path/to/cert.pem:/client.pem" keshavdv/unifi-cam-proxy unifi-cam-proxy --verbose --ip "<Camera IP>" --host <NVR IP> --cert /client.pem --token <Adoption token> rtsp -s rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_175k.mov
 ```
 
 ## Acquiring adoption token
