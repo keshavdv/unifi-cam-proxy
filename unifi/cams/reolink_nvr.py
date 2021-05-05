@@ -50,18 +50,25 @@ class ReolinkNVRCam(UnifiCamBase):
                     while True:
                         async with session.post(encoded_url, data=body) as resp:
                             data = await resp.read()
-                            json_body = json.loads(data)
 
-                            if json_body[0]["value"]["state"] == 1:
-                                if not self.motion_in_progress:
-                                    self.motion_in_progress = True
-                                    self.logger.info("Trigger motion start")
-                                    await self.trigger_motion_start()
-                            elif json_body[0]["value"]["state"] == 0:
-                                if self.motion_in_progress:
-                                    self.motion_in_progress = False
-                                    self.logger.info("Trigger motion end")
-                                    await self.trigger_motion_stop()
+                            try:
+                                json_body = json.loads(data)
+                                if "value" in json_body[0]:
+                                    if json_body[0]["value"]["state"] == 1:
+                                        if not self.motion_in_progress:
+                                            self.motion_in_progress = True
+                                            self.logger.info("Trigger motion start")
+                                            await self.trigger_motion_start()
+                                    elif json_body[0]["value"]["state"] == 0:
+                                        if self.motion_in_progress:
+                                            self.motion_in_progress = False
+                                            self.logger.info("Trigger motion end")
+                                            await self.trigger_motion_stop()
+                                else:
+                                    self.logger.error(f"Motion API request responded with unexpected JSON, retrying. JSON: {data}")
+                            
+                            except json.JSONDecodeError as err:
+                                self.logger.error(f"Motion API request returned invalid JSON, retrying. Error: {err}, Response: {data}")
 
             except aiohttp.ClientError as err:
                 self.logger.error(f"Motion API request failed, retrying. Error: {err}")
