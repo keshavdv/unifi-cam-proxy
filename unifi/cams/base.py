@@ -46,7 +46,7 @@ class UnifiCamBase(metaclass=ABCMeta):
         self._ssl_context.check_hostname = False
         self._ssl_context.verify_mode = ssl.CERT_NONE
         self._ssl_context.load_cert_chain(args.cert, args.cert)
-        self._session: Optional[websockets.client.WebSocketClientProtocol] = None
+        self._session: Optional[websockets.legacy.client.WebSocketClientProtocol] = None
         atexit.register(self.close_streams)
 
     @classmethod
