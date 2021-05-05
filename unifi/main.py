@@ -8,6 +8,7 @@ import coloredlogs
 
 from unifi.cams import FrigateCam, HikvisionCam, LorexCam, ReolinkNVRCam, RTSPCam
 from unifi.core import Core
+from unifi.version import __version__
 
 CAMS = {
     "frigate": FrigateCam,
@@ -20,6 +21,7 @@ CAMS = {
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--host", "-H", required=True, help="NVR ip address and port")
     parser.add_argument(
         "--cert",
