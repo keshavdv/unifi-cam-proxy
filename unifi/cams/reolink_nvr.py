@@ -65,10 +65,19 @@ class ReolinkNVRCam(UnifiCamBase):
                                             self.logger.info("Trigger motion end")
                                             await self.trigger_motion_stop()
                                 else:
-                                    self.logger.error(f"Motion API request responded with unexpected JSON, retrying. JSON: {data}")
-                            
+                                    self.logger.error(
+                                        "Motion API request responded with "
+                                        "unexpected JSON, retrying. "
+                                        f"JSON: {data}"
+                                    )
+
                             except json.JSONDecodeError as err:
-                                self.logger.error(f"Motion API request returned invalid JSON, retrying. Error: {err}, Response: {data}")
+                                self.logger.error(
+                                    "Motion API request returned invalid "
+                                    "JSON, retrying. "
+                                    f"Error: {err}, "
+                                    f"Response: {data}"
+                                )
 
             except aiohttp.ClientError as err:
                 self.logger.error(f"Motion API request failed, retrying. Error: {err}")
