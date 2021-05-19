@@ -72,7 +72,7 @@ def parse_args():
         "--verbose", "-v", action="store_true", help="increase output verbosity"
     )
 
-    sp = parser.add_subparsers(help="Camera implementations", dest="impl")
+    sp = parser.add_subparsers(help="Camera implementations", dest="impl", required=True)
     for (name, impl) in CAMS.items():
         subparser = sp.add_parser(name)
         impl.add_parser(subparser)

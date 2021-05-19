@@ -48,8 +48,13 @@ class Core(object):
                 )
                 has_connected = True
             except websockets.exceptions.InvalidStatusCode as e:
+                if e.status_code == 403:
+                    self.logger.error(
+                        f"The token '{self.token}'"
+                        " is invalid. Please generate a new one and try again."
+                    )
                 # Hitting rate-limiting
-                if e.status_code == 429:
+                elif e.status_code == 429:
                     return True
                 raise
             except ConnectionRefusedError:
