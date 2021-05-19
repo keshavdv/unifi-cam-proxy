@@ -68,20 +68,35 @@ unifi-cam-proxy --host <NVR IP> --mac 'AA:BB:CC:33:44:55' --cert client.pem --to
 ```
 
 
-## Device-specific Implementations
+## Brand-specific Instructions
 
-1. Hikvision PTZ (Hikvision DS-2DE3304W-DE): Uses brightness/contrast settings to control PTZ
+#### Hikvision
+  * Tested: Hikvision DS-2DE3304W-DE (Uses brightness/contrast settings to control PTZ movements)
 ```
 unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> hikvision -u <username> -p <password>
 ```
 
-2. Reolink NVR Cameras (Reolink RLN16-410): Adds motion events
-Note: Camera/channel IDs are zero-based
+#### Reolink:
+* Standalone cameras
+    * Tested: RLC-410-5MP
+```
+unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> rtsp -s <rtsp stream> --ffmpeg-args '-c:v copy -vbsf "h264_metadata=tick_rate=60000/1001:fixed_frame_rate_flag=1" -ar 32000 -ac 2 -codec:a aac -b:a 32k'
+```
+
+* NVR (Note: Camera/channel IDs are zero-based)
 ```
 unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> reolink_nvr -u <username> -p <password> -c <camera_id>
 ```
 
-3. Lorex (LNB4321B, likely also Dahua cameras): Adds motion events
+#### Lorex:
+  * Tested: LNB4321B (supports motion events)
 ```
 unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> lorex -u <username> -p <password>
+```
+
+#### Frigate: Supports smart detections
+  * Note: Do not use the RTMP stream from frigate, use the original RTSP stream from your camera
+```
+unifi-cam-proxy  -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token>  frigate -s <rtsp source> --mqtt-host <mqtt host> --frigate-camera <Name of camera in frigate>
+
 ```
