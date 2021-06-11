@@ -17,7 +17,7 @@ Things that work:
 Dependencies:
 
 * ffmpeg and netcat must be installed
-* Python 3+
+* Python 3.7+
 
 
 ## Usage
