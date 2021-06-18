@@ -18,15 +18,23 @@ class RTSPCam(UnifiCamBase):
         self.snapshot_stream = None
         self.runner = None
         self.stream_source = dict()
-        for i, stream_index in enumerate(['video1','video2','video3']):
-            self.stream_source[stream_index] = self.args.source[i if i < len(self.args.source) else -1]
+        for i, stream_index in enumerate(['video1', 'video2', 'video3']):
+            if not i < len(self.args.source):
+                i = -1
+            self.stream_source[stream_index] = self.args.source[i]
         if not self.args.snapshot_url:
             self.start_snapshot_stream()
 
     @classmethod
     def add_parser(cls, parser: argparse.ArgumentParser) -> None:
         super().add_parser(parser)
-        parser.add_argument("--source", "-s", nargs='+', required=True, help="Stream source(s)")
+        parser.add_argument(
+            "--source",
+            "-s",
+            nargs='+',
+            required=True,
+            help="Source(s) for up to three streams in order of descending quality",
+        )
         parser.add_argument(
             "--http-api",
             default=0,
