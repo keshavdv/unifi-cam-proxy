@@ -17,13 +17,24 @@ class RTSPCam(UnifiCamBase):
         self.snapshot_dir = tempfile.mkdtemp()
         self.snapshot_stream = None
         self.runner = None
+        self.stream_source = dict()
+        for i, stream_index in enumerate(['video1', 'video2', 'video3']):
+            if not i < len(self.args.source):
+                i = -1
+            self.stream_source[stream_index] = self.args.source[i]
         if not self.args.snapshot_url:
             self.start_snapshot_stream()
 
     @classmethod
     def add_parser(cls, parser: argparse.ArgumentParser) -> None:
         super().add_parser(parser)
-        parser.add_argument("--source", "-s", required=True, help="Stream source")
+        parser.add_argument(
+            "--source",
+            "-s",
+            nargs='+',
+            required=True,
+            help="Source(s) for up to three streams in order of descending quality",
+        )
         parser.add_argument(
             "--http-api",
             default=0,
@@ -43,7 +54,7 @@ class RTSPCam(UnifiCamBase):
         if not self.snapshot_stream or self.snapshot_stream.poll() is not None:
             cmd = (
                 f"ffmpeg -nostdin -y -re -rtsp_transport {self.args.rtsp_transport} "
-                f'-i "{self .args.source}" '
+                f'-i "{self.args.source[-1]}" '
                 "-vf fps=1 "
                 f"-update 1 {self.snapshot_dir}/screen.jpg"
             )
@@ -93,4 +104,4 @@ class RTSPCam(UnifiCamBase):
             self.snapshot_stream.kill()
 
     def get_stream_source(self, stream_index: str) -> str:
-        return self.args.source
+        return self.stream_source[stream_index]
