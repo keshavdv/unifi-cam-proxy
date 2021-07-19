@@ -1,12 +1,15 @@
 version: '3'
 services:
   unifi-cam-proxy:
-    image:  keshavdv/unifi-cam-proxy
+    build: .
     container_name: unifi-cam-proxy
     volumes:
-      - ./client.pem:/client.pem
-      - ./:/code
-    command: bash -c "cd /code && pip install -e . && unifi-cam-proxy --help"
+      - './client.pem:/client.pem'
+    environment:
+      - "HOST=192.168.103.180"
+      - "TOKEN=UojOceUtnvtaxpiY"
+      - "RTSP_URL=rtsp://freja.hiof.no:1935/rtplive/definst/hessdalen03.stream"
+    restart: always
   unifi-video-controller:
     image:  pducharme/unifi-video-controller
     container_name: unifi-video-controller
@@ -53,7 +56,6 @@ services:
         - PUID_POSTGRES=102
         - PGID_POSTGRES=104
     image: fryfrog/unifi-protect
-
   frigate:
     image: blakeblackshear/frigate:stable-amd64
     privileged: true

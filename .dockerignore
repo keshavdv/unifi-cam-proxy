@@ -1,0 +1,10 @@
+*.pyc
+build
+dist
+*.egg-info
+venv
+client.pem
+run/
+MANIFEST
+MANIFEST.in
+.pyre/
