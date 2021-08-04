@@ -7,7 +7,7 @@ RUN apt-get -y update && apt-get install -y \
 
 COPY . .
 
-RUN python setup.py install
+RUN pip install .
 
 COPY ./docker/entrypoint.sh /
 
