@@ -99,6 +99,9 @@ class UnifiCamBase(metaclass=ABCMeta):
     def get_feature_flags(self) -> Dict[str, Any]:
         return {
             "mic": True,
+            "aec": [],
+            "videoMode": ["default"],
+            "motionDetect": ["enhanced"],
         }
 
     # API for subclasses
@@ -220,7 +223,7 @@ class UnifiCamBase(metaclass=ABCMeta):
                     "semver": "v4.4.8",
                     "totalLoad": 0.5474,
                     "upgradeTimeoutSec": 150,
-                    "uptime": self.get_uptime(),
+                    "uptime": int(self.get_uptime()),
                     "features": self.get_feature_flags(),
                 },
             ),
@@ -352,6 +355,7 @@ class UnifiCamBase(metaclass=ABCMeta):
                     "enableHrd": False,
                     "hdrMode": 0,
                     "lowDelay": False,
+                    "videoMode": "default",
                     "mjpg": {
                         "avSerializer": {
                             "destinations": [
