@@ -37,11 +37,14 @@ class FrigateCam(RTSPCam):
 
     def get_feature_flags(self) -> Dict[str, Any]:
         return {
-            "mic": True,
-            "smartDetect": [
-                "person",
-                "vehicle",
-            ],
+            **super().get_feature_flags(),
+            **{
+                "mic": True,
+                "smartDetect": [
+                    "person",
+                    "vehicle",
+                ],
+            },
         }
 
     @classmethod
