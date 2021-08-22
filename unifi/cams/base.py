@@ -188,7 +188,20 @@ class UnifiCamBase(metaclass=ABCMeta):
 
     async def fetch_to_file(self, url: str, dst: Path) -> bool:
         try:
-            async with aiohttp.request("GET", url) as resp:
+            if "@" in url:
+                split_url = url.split('@')
+                prefix = split_url[0]
+                bare_url = split_url[1]
+                split_prefix = prefix.split('://')
+                protocol = split_prefix[0]
+                username_and_password = split_prefix[1]
+                split_username_and_password = username_and_password.split(':')
+                auth = aiohttp.BasicAuth(login=split_username_and_password[0], password=split_username_and_password[1])
+                url = protocol + "://" + bare_url
+            else:
+                auth = None
+            self.logger.info(f'Fetching snapshot from {url} with Authentication: {auth}')
+            async with aiohttp.request("GET", url, auth=auth) as resp:
                 with dst.open("wb") as f:
                     f.write(await resp.read())
                     return True
