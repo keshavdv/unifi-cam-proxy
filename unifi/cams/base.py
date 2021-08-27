@@ -2,7 +2,6 @@ import argparse
 import atexit
 import json
 import logging
-import os
 import shutil
 import ssl
 import subprocess
@@ -36,7 +35,7 @@ class UnifiCamBase(metaclass=ABCMeta):
         self._msg_id: int = 0
         self._init_time: float = time.time()
         self._streams: Dict[str, str] = {}
-        self._motion_snapshot = None
+        self._motion_snapshot: Optional[Path] = None
         self._motion_event_id: int = 0
         self._motion_event_ts: Optional[float] = None
         self._ffmpeg_handles = {}
@@ -141,9 +140,15 @@ class UnifiCamBase(metaclass=ABCMeta):
                 ),
             )
             self._motion_event_ts = time.time()
-            self._motion_snapshot = shutil.copyfile(
-                await self.get_snapshot(), tempfile.NamedTemporaryFile(delete=True).name
-            )
+
+            # Capture snapshot at beginning of motion event for thumbnail
+            motion_snapshot_path: str = tempfile.NamedTemporaryFile(delete=False).name
+            try:
+                shutil.copyfile(await self.get_snapshot(), motion_snapshot_path)
+                self.logger.debug(f"Captured motion snapshot to {motion_snapshot_path}")
+                self._motion_snapshot = Path(motion_snapshot_path)
+            except FileNotFoundError:
+                pass
 
     async def trigger_motion_stop(
         self, object_type: Optional[SmartDetectObjectType] = None
@@ -742,7 +747,7 @@ class UnifiCamBase(metaclass=ABCMeta):
         else:
             path = await self.get_snapshot()
 
-        if path and os.path.isfile(path):
+        if path and path.exists():
             async with aiohttp.ClientSession() as session:
                 files = {"payload": open(path, "rb")}
                 files.update(msg["payload"].get("formFields", {}))

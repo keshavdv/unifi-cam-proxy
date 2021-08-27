@@ -18,7 +18,7 @@ class RTSPCam(UnifiCamBase):
         self.snapshot_stream = None
         self.runner = None
         self.stream_source = dict()
-        for i, stream_index in enumerate(['video1', 'video2', 'video3']):
+        for i, stream_index in enumerate(["video1", "video2", "video3"]):
             if not i < len(self.args.source):
                 i = -1
             self.stream_source[stream_index] = self.args.source[i]
@@ -31,7 +31,7 @@ class RTSPCam(UnifiCamBase):
         parser.add_argument(
             "--source",
             "-s",
-            nargs='+',
+            nargs="+",
             required=True,
             help="Source(s) for up to three streams in order of descending quality",
         )
@@ -55,7 +55,7 @@ class RTSPCam(UnifiCamBase):
             cmd = (
                 f"ffmpeg -nostdin -y -re -rtsp_transport {self.args.rtsp_transport} "
                 f'-i "{self.args.source[-1]}" '
-                "-vf fps=1 "
+                "-r 1 "
                 f"-update 1 {self.snapshot_dir}/screen.jpg"
             )
             self.logger.info(f"Spawning stream for snapshots: {cmd}")
