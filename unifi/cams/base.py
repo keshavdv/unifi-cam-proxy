@@ -742,7 +742,7 @@ class UnifiCamBase(metaclass=ABCMeta):
         else:
             path = await self.get_snapshot()
 
-        if os.path.isfile(path):
+        if path and os.path.isfile(path):
             async with aiohttp.ClientSession() as session:
                 files = {"payload": open(path, "rb")}
                 files.update(msg["payload"].get("formFields", {}))
