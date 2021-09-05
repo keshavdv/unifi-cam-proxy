@@ -6,7 +6,9 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import backoff
 from asyncio_mqtt import Client
+from asyncio_mqtt.error import MqttError
 
 from unifi.cams.base import SmartDetectObjectType
 from unifi.cams.rtsp import RTSPCam
@@ -55,16 +57,30 @@ class FrigateCam(RTSPCam):
             return SmartDetectObjectType.CAR
 
     async def run(self) -> None:
-        async with Client(self.args.mqtt_host, port=self.args.mqtt_port) as client:
-            self.logger.info(
-                f"Connected to {self.args.mqtt_host}:{self.args.mqtt_port}"
-            )
-            tasks = [
-                self.handle_detection_events(client),
-                self.handle_snapshot_events(client),
-            ]
-            await client.subscribe(f"{self.args.mqtt_prefix}/#")
-            await asyncio.gather(*tasks)
+        has_connected = False
+
+        @backoff.on_predicate(backoff.expo, max_value=60, logger=self.logger)
+        async def mqtt_connect():
+            nonlocal has_connected
+            try:
+                async with Client(
+                    self.args.mqtt_host, port=self.args.mqtt_port
+                ) as client:
+                    has_connected = True
+                    self.logger.info(
+                        f"Connected to {self.args.mqtt_host}:{self.args.mqtt_port}"
+                    )
+                    tasks = [
+                        self.handle_detection_events(client),
+                        self.handle_snapshot_events(client),
+                    ]
+                    await client.subscribe(f"{self.args.mqtt_prefix}/#")
+                    await asyncio.gather(*tasks)
+            except MqttError:
+                if not has_connected:
+                    raise
+
+        await mqtt_connect()
 
     async def handle_detection_events(self, client) -> None:
         async with client.filtered_messages(
@@ -101,7 +117,6 @@ class FrigateCam(RTSPCam):
 
     async def handle_snapshot_events(self, client) -> None:
         topic_fmt = f"{self.args.mqtt_prefix}/{self.args.frigate_camera}/{{}}/snapshot"
-        self.logger.debug(topic_fmt.format("+"))
         async with client.filtered_messages(topic_fmt.format("+")) as messages:
             async for message in messages:
                 if (
