@@ -18,7 +18,7 @@ class FrigateCam(RTSPCam):
     def __init__(self, args: argparse.Namespace, logger: logging.Logger) -> None:
         super().__init__(args, logger)
         self.args = args
-        self.event_active: bool = False
+        self.event_id: Optional[str] = None
         self.event_label: Optional[str] = None
         self.event_snapshot_ready = None
 
@@ -100,17 +100,29 @@ class FrigateCam(RTSPCam):
                             f"Received unsupport detection label type: {label}"
                         )
 
-                    if not self.event_active and frigate_msg["type"] == "new":
-                        self.event_active = True
+                    if not self.event_id and frigate_msg["type"] == "new":
+                        self.event_id = frigate_msg["after"]["id"]
                         self.event_label = label
                         self.event_snapshot_ready = asyncio.Event()
+                        self.logger.info(
+                            f"Starting {self.event_label} motion event"
+                            f" (id: {self.event_id})"
+                        )
                         await self.trigger_motion_start(object_type)
-                    elif self.event_active and frigate_msg["type"] == "end":
+                    elif (
+                        self.event_id == frigate_msg["after"]["id"]
+                        and frigate_msg["type"] == "end"
+                    ):
                         # Wait for the best snapshot to be ready before
                         # ending the motion event
+                        self.logger.info(f"Awaiting snapshot (id: {self.event_id})")
                         await self.event_snapshot_ready.wait()
+                        self.logger.info(
+                            f"Ending {self.event_label} motion event"
+                            f" (id: {self.event_id})"
+                        )
                         await self.trigger_motion_stop(object_type)
-                        self.event_active = False
+                        self.event_id = None
                         self.event_label = None
                 except json.JSONDecodeError:
                     self.logger.exception(f"Could not decode payload: {msg}")
@@ -120,7 +132,7 @@ class FrigateCam(RTSPCam):
         async with client.filtered_messages(topic_fmt.format("+")) as messages:
             async for message in messages:
                 if (
-                    self.event_active
+                    self.event_id
                     and not message.retain
                     and message.topic == topic_fmt.format(self.event_label)
                 ):
