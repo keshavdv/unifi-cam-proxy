@@ -75,7 +75,7 @@ class FrigateCam(RTSPCam):
                 try:
                     frigate_msg = json.loads(message.payload.decode())
                     if not frigate_msg["after"]["camera"] == self.args.frigate_camera:
-                        return
+                        continue
 
                     label = frigate_msg["after"]["label"]
                     object_type = self.label_to_object_type(label)
