@@ -96,7 +96,9 @@ class DahuaCam(UnifiCamBase):
                 ) as session:
                     async with session.request("GET", encoded_url) as resp:
                         if resp.status != 200:
-                            self.logger.error(f"Motion API unsupported (status: {resp.status})")
+                            self.logger.error(
+                                f"Motion API unsupported (status: {resp.status})"
+                            )
 
                         # The multipart respones on this endpoint
                         # are not properly formatted, so this
