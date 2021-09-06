@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import logging
 import tempfile
 from pathlib import Path
@@ -94,10 +95,14 @@ class DahuaCam(UnifiCamBase):
                     timeout=aiohttp.ClientTimeout(None)
                 ) as session:
                     async with session.request("GET", encoded_url) as resp:
+                        if resp.status != 200:
+                            self.logger.error(f"Motion API unsupported (status: {resp.status})")
+
                         # The multipart respones on this endpoint
                         # are not properly formatted, so this
                         # is implemented manually
                         while True:
+                            await asyncio.sleep(0)
                             line = (await resp.content.readline()).decode()
                             if line.startswith("Code="):
                                 parts = line.split(";")
