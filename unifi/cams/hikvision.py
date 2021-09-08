@@ -20,6 +20,7 @@ class HikvisionCam(UnifiCamBase):
             f"http://{self.args.ip}", self.args.username, self.args.password
         )
         self.channel = args.channel
+        self.substream = args.substream
         self.ptz_supported = self.check_ptz_support(self.channel)
 
     @classmethod
@@ -28,7 +29,10 @@ class HikvisionCam(UnifiCamBase):
         parser.add_argument("--username", "-u", required=True, help="Camera username")
         parser.add_argument("--password", "-p", required=True, help="Camera password")
         parser.add_argument(
-            "--channel", "-c", default=1, type=int, help="Camera channel"
+            "--channel", "-c", default=1, type=int, help="Camera channel index"
+        )
+        parser.add_argument(
+            "--substream", "-s", default=3, type=int, help="Camera substream index"
         )
 
     async def get_snapshot(self) -> Path:
@@ -92,7 +96,7 @@ class HikvisionCam(UnifiCamBase):
     def get_stream_source(self, stream_index: str) -> str:
         substream = 1
         if stream_index != "video1":
-            substream = 3
+            substream = self.substream
 
         return (
             f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}:554"
