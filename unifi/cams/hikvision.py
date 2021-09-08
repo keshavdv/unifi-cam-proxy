@@ -19,18 +19,22 @@ class HikvisionCam(UnifiCamBase):
         self.cam = Client(
             f"http://{self.args.ip}", self.args.username, self.args.password
         )
-        self.ptz_supported = self.check_ptz_support()
+        self.channel = args.channel
+        self.ptz_supported = self.check_ptz_support(self.channel)
 
     @classmethod
     def add_parser(cls, parser: argparse.ArgumentParser) -> None:
         super().add_parser(parser)
         parser.add_argument("--username", "-u", required=True, help="Camera username")
         parser.add_argument("--password", "-p", required=True, help="Camera password")
+        parser.add_argument(
+            "--channel", "-c", default=1, type=int, help="Camera channel"
+        )
 
     async def get_snapshot(self) -> Path:
         img_file = Path(self.snapshot_dir, "screen.jpg")
-
-        resp = self.cam.Streaming.channels[102].picture(
+        source = int(f"{self.channel}01")
+        resp = self.cam.Streaming.channels[source].picture(
             method="get", type="opaque_data"
         )
         with img_file.open("wb") as f:
@@ -39,9 +43,9 @@ class HikvisionCam(UnifiCamBase):
                     f.write(chunk)
         return img_file
 
-    def check_ptz_support(self) -> bool:
+    def check_ptz_support(self, channel) -> bool:
         try:
-            self.cam.PTZCtrl.channels[1].capabilities(method="get")
+            self.cam.PTZCtrl.channels[channel].capabilities(method="get")
             self.logger.info("Detected PTZ support")
             return True
         except requests.exceptions.HTTPError:
@@ -86,11 +90,11 @@ class HikvisionCam(UnifiCamBase):
             )
 
     def get_stream_source(self, stream_index: str) -> str:
-        channel = 1
+        substream = 1
         if stream_index != "video1":
-            channel = 3
+            substream = 3
 
         return (
             f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}:554"
-            f"/Streaming/Channels/{channel}/"
+            f"/Streaming/Channels/{self.channel}0{substream}/"
         )
