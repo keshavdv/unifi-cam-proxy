@@ -38,13 +38,16 @@ class HikvisionCam(UnifiCamBase):
     async def get_snapshot(self) -> Path:
         img_file = Path(self.snapshot_dir, "screen.jpg")
         source = int(f"{self.channel}01")
-        resp = self.cam.Streaming.channels[source].picture(
-            method="get", type="opaque_data"
-        )
-        with img_file.open("wb") as f:
-            for chunk in resp.iter_content(chunk_size=1024):
-                if chunk:
-                    f.write(chunk)
+        try:
+            resp = self.cam.Streaming.channels[source].picture(
+                method="get", type="opaque_data"
+            )
+            with img_file.open("wb") as f:
+                for chunk in resp.iter_content(chunk_size=1024):
+                    if chunk:
+                        f.write(chunk)
+        except requests.exceptions.ReadTimeout:
+            pass
         return img_file
 
     def check_ptz_support(self, channel) -> bool:
