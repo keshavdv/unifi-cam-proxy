@@ -36,6 +36,11 @@ class FrigateCam(RTSPCam):
             type=str,
             help="Name of camera in frigate",
         )
+        parser.add_argument(
+            "--frigate-zone",
+            type=str,
+            help="Name of zone in frigate",
+        )
 
     def get_feature_flags(self) -> Dict[str, Any]:
         return {
@@ -92,6 +97,12 @@ class FrigateCam(RTSPCam):
                     frigate_msg = json.loads(message.payload.decode())
                     if not frigate_msg["after"]["camera"] == self.args.frigate_camera:
                         continue
+
+                    if (
+                        self.args.frigate_zone
+                    ):
+                        if not self.args.frigate_zone in frigate_msg["after"]["entered_zones"]:
+                            continue
 
                     label = frigate_msg["after"]["label"]
                     object_type = self.label_to_object_type(label)
