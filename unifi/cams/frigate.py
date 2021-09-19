@@ -98,18 +98,18 @@ class FrigateCam(RTSPCam):
                     if not frigate_msg["after"]["camera"] == self.args.frigate_camera:
                         continue
 
-                    if (
-                        self.args.frigate_zone
-                    ):
-                        if not self.args.frigate_zone in frigate_msg["after"]["entered_zones"]:
-                            continue
-
                     label = frigate_msg["after"]["label"]
                     object_type = self.label_to_object_type(label)
                     if not object_type:
                         self.logger.warning(
                             f"Received unsupport detection label type: {label}"
                         )
+
+                    if (
+                        self.args.frigate_zone
+                    ):
+                        if self.args.frigate_zone not in frigate_msg["after"]["entered_zones"]:
+                            object_type = None
 
                     if not self.event_id and frigate_msg["type"] == "new":
                         self.event_id = frigate_msg["after"]["id"]
