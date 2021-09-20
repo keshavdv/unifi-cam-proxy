@@ -105,7 +105,7 @@ class UnifiCamBase(metaclass=ABCMeta):
 
     # API for subclasses
     async def trigger_motion_start(
-        self, object_type: Optional[SmartDetectObjectType] = None
+        self, object_type: Optional[SmartDetectObjectType] = None, motion_start=int(round(time.time() * 1000))
     ) -> None:
         if not self._motion_event_ts:
             payload: Dict[str, Any] = {
@@ -114,7 +114,7 @@ class UnifiCamBase(metaclass=ABCMeta):
                 "clockMonotonic": int(self.get_uptime()),
                 "clockStream": int(self.get_uptime()),
                 "clockStreamRate": 1000,
-                "clockWall": int(round(time.time() * 1000)),
+                "clockWall": motion_start,
                 "edgeType": "start",
                 "eventId": self._motion_event_id,
                 "eventType": "motion",

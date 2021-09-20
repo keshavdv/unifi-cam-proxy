@@ -3,6 +3,7 @@ import asyncio
 import json
 import logging
 import tempfile
+import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -21,6 +22,7 @@ class FrigateCam(RTSPCam):
         self.event_id: Optional[str] = None
         self.event_label: Optional[str] = None
         self.event_snapshot_ready = None
+        self.motion_start: int = None
 
     @classmethod
     def add_parser(cls, parser: argparse.ArgumentParser) -> None:
@@ -104,26 +106,27 @@ class FrigateCam(RTSPCam):
                         self.logger.warning(
                             f"Received unsupport detection label type: {label}"
                         )
-
-                    if (
-                        self.args.frigate_zone
-                    ):
-                        if self.args.frigate_zone not in frigate_msg["after"]["entered_zones"]:
-                            object_type = None
-
                     if not self.event_id and frigate_msg["type"] == "new":
+                        self.motion_start = int(round(frigate_msg["after"]["start_time"] * 1000))
                         self.event_id = frigate_msg["after"]["id"]
+                    elif (
+                        self.event_id == frigate_msg["after"]["id"]
+                        and frigate_msg["type"] == "end"
+                    ):
+                        if (
+                            self.args.frigate_zone
+                        ):
+                            if self.args.frigate_zone not in frigate_msg["after"]["entered_zones"]:
+                                object_type = None
+
                         self.event_label = label
                         self.event_snapshot_ready = asyncio.Event()
                         self.logger.info(
                             f"Starting {self.event_label} motion event"
                             f" (id: {self.event_id})"
                         )
-                        await self.trigger_motion_start(object_type)
-                    elif (
-                        self.event_id == frigate_msg["after"]["id"]
-                        and frigate_msg["type"] == "end"
-                    ):
+                        await self.trigger_motion_start(object_type, self.motion_start)
+
                         # Wait for the best snapshot to be ready before
                         # ending the motion event
                         self.logger.info(f"Awaiting snapshot (id: {self.event_id})")
