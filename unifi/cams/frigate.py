@@ -2,9 +2,6 @@ import argparse
 import asyncio
 import json
 import logging
-import tempfile
-import time
-from pathlib import Path
 from typing import Any, Dict, Optional
 
 import backoff
@@ -21,12 +18,14 @@ class FrigateCam(RTSPCam):
         self.args = args
         self.event_id: Optional[str] = None
         self.event_label: Optional[str] = None
-        self.event_snapshot_ready = None
         self.motion_start: int = None
+        self.motion_stop: int = None
 
     @classmethod
     def add_parser(cls, parser: argparse.ArgumentParser) -> None:
         super().add_parser(parser)
+        parser.add_argument("--frigate-host", required=True, help="Frigate server")
+        parser.add_argument("--frigate-port", default=5000, type=int, help="Frigate server")
         parser.add_argument("--mqtt-host", required=True, help="MQTT server")
         parser.add_argument("--mqtt-port", default=1883, type=int, help="MQTT server")
         parser.add_argument(
@@ -79,7 +78,6 @@ class FrigateCam(RTSPCam):
                     )
                     tasks = [
                         self.handle_detection_events(client),
-                        self.handle_snapshot_events(client),
                     ]
                     await client.subscribe(f"{self.args.mqtt_prefix}/#")
                     await asyncio.gather(*tasks)
@@ -107,57 +105,50 @@ class FrigateCam(RTSPCam):
                             f"Received unsupport detection label type: {label}"
                         )
                     if not self.event_id and frigate_msg["type"] == "new":
-                        self.motion_start = int(round(frigate_msg["after"]["start_time"] * 1000))
                         self.event_id = frigate_msg["after"]["id"]
-                    elif (
-                        self.event_id == frigate_msg["after"]["id"]
-                        and frigate_msg["type"] == "end"
-                    ):
+                        self.event_label = label
+                        await self.handle_snapshot_events()
+                    elif frigate_msg["type"] == "end":
+                        self.event_id = frigate_msg["after"]["id"]
+                        self.motion_start = int(round(frigate_msg["after"]["start_time"] * 1000))
+                        self.motion_stop = int(round(frigate_msg["after"]["end_time"] * 1000))
+
                         if (
                             self.args.frigate_zone
                         ):
                             if self.args.frigate_zone not in frigate_msg["after"]["entered_zones"]:
                                 object_type = None
 
-                        self.event_label = label
-                        self.event_snapshot_ready = asyncio.Event()
-                        self.logger.info(
-                            f"Starting {self.event_label} motion event"
-                            f" (id: {self.event_id})"
-                        )
                         await self.trigger_motion_start(object_type, self.motion_start)
 
                         # Wait for the best snapshot to be ready before
                         # ending the motion event
                         self.logger.info(f"Awaiting snapshot (id: {self.event_id})")
-                        await self.event_snapshot_ready.wait()
+                        self.event_label = label
+                        await self.handle_snapshot_events()
+
                         self.logger.info(
                             f"Ending {self.event_label} motion event"
                             f" (id: {self.event_id})"
                         )
-                        await self.trigger_motion_stop(object_type)
+                        await self.trigger_motion_stop(object_type, self.motion_stop)
                         self.event_id = None
                         self.event_label = None
                 except json.JSONDecodeError:
                     self.logger.exception(f"Could not decode payload: {msg}")
 
-    async def handle_snapshot_events(self, client) -> None:
-        topic_fmt = f"{self.args.mqtt_prefix}/{self.args.frigate_camera}/{{}}/snapshot"
-        async with client.filtered_messages(topic_fmt.format("+")) as messages:
-            async for message in messages:
-                if (
-                    self.event_id
-                    and not message.retain
-                    and message.topic == topic_fmt.format(self.event_label)
-                ):
-                    f = tempfile.NamedTemporaryFile()
-                    f.write(message.payload)
-                    self.logger.debug(
-                        f"Updating snapshot for {self.event_label} with {f.name}"
-                    )
-                    self.update_motion_snapshot(Path(f.name))
-                    self.event_snapshot_ready.set()
-                else:
-                    self.logger.debug(
-                        f"Discarding snapshot message ({len(message.payload)})"
-                    )
+    async def handle_snapshot_events(self):
+        if self.event_id:
+            f = self._motion_snapshot
+
+            url = (
+                f"http://{self.args.frigate_host}:{self.args.frigate_port}"
+                f"/api/events/{self.event_id}/thumbnail.jpg"
+            )
+
+            await self.fetch_to_file(url, f)
+
+            self.logger.debug(
+                f"Updating snapshot for {self.event_label} using {url}"
+            )
+            self.update_motion_snapshot(f)

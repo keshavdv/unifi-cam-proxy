@@ -139,7 +139,7 @@ class UnifiCamBase(metaclass=ABCMeta):
                     payload=payload,
                 ),
             )
-            self._motion_event_ts = time.time()
+            self._motion_event_ts = motion_start
 
             # Capture snapshot at beginning of motion event for thumbnail
             motion_snapshot_path: str = tempfile.NamedTemporaryFile(delete=False).name
@@ -151,17 +151,17 @@ class UnifiCamBase(metaclass=ABCMeta):
                 pass
 
     async def trigger_motion_stop(
-        self, object_type: Optional[SmartDetectObjectType] = None
+        self, object_type: Optional[SmartDetectObjectType] = None, motion_stop=int(round(time.time() * 1000))
     ) -> None:
         motion_start_ts = self._motion_event_ts
         if motion_start_ts:
             payload: Dict[str, Any] = {
                 "clockBestMonotonic": int(self.get_uptime()),
-                "clockBestWall": int(round(motion_start_ts * 1000)),
+                "clockBestWall": motion_start_ts,
                 "clockMonotonic": int(self.get_uptime()),
                 "clockStream": int(self.get_uptime()),
                 "clockStreamRate": 1000,
-                "clockWall": int(round(time.time() * 1000)),
+                "clockWall": motion_stop,
                 "edgeType": "stop",
                 "eventId": self._motion_event_id,
                 "eventType": "motion",
