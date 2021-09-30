@@ -97,6 +97,6 @@ unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> lor
 #### Frigate: Supports smart detections
   * Note: Do not use the RTMP stream from frigate, use the original RTSP stream from your camera
 ```
-unifi-cam-proxy  -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token>  frigate -s <rtsp source> --mqtt-host <mqtt host> --frigate-camera <Name of camera in frigate>
+unifi-cam-proxy  -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token>  frigate -s <rtsp source> --mqtt-host <mqtt host> --frigate-host <frigate host> --frigate-camera <Name of camera in frigate>
 
 ```
