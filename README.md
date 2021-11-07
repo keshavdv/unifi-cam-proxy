@@ -19,6 +19,10 @@ Dependencies:
 * ffmpeg and netcat must be installed
 * Python 3.7+
 
+If python 2 is installed, then run this command:
+```
+sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.7 1
+```
 
 ## Usage
 
