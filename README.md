@@ -78,11 +78,14 @@ unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> hik
 
 #### Reolink:
 * Standalone cameras
-    * Tested: RLC-410-5MP
+    * Tested: RLC-410-5MP 
 ```
 unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> rtsp -s <rtsp stream> --ffmpeg-args '-c:v copy -vbsf "h264_metadata=tick_rate=60000/1001:fixed_frame_rate_flag=1" -ar 32000 -ac 2 -codec:a aac -b:a 32k'
 ```
-
+* Standalone cameras using proper Snapshot URL and Motion-Det API url *work in progress*
+```
+unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> reolink -u <username> -p <password> -c <camera_id>
+```
 * NVR (Note: Camera/channel IDs are zero-based)
 ```
 unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> reolink_nvr -u <username> -p <password> -c <camera_id>
