@@ -6,7 +6,7 @@ from shutil import which
 
 import coloredlogs
 
-from unifi.cams import DahuaCam, FrigateCam, HikvisionCam, ReolinkNVRCam, RTSPCam
+from unifi.cams import DahuaCam, FrigateCam, HikvisionCam, Reolink, ReolinkNVRCam, RTSPCam
 from unifi.core import Core
 from unifi.version import __version__
 
@@ -15,6 +15,7 @@ CAMS = {
     "hikvision": HikvisionCam,
     "lorex": DahuaCam,
     "dahua": DahuaCam,
+    "reolink": Reolink,
     "reolink_nvr": ReolinkNVRCam,
     "rtsp": RTSPCam,
 }
