@@ -5,14 +5,18 @@ import tempfile
 from pathlib import Path
 
 import aiohttp
+from aiohttp.helpers import BasicAuth
 from yarl import URL
+from asyncio import sleep
 
 from unifi.cams.base import UnifiCamBase
+from unifi.util import DigestAuth
 
 
 class DahuaCam(UnifiCamBase):
     def __init__(self, args: argparse.Namespace, logger: logging.Logger) -> None:
         super().__init__(args, logger)
+        self._run_iteration = 1
         self.snapshot_dir = tempfile.mkdtemp()
         if self.args.snapshot_channel is None:
             self.args.snapshot_channel = self.args.channel - 1
@@ -81,31 +85,47 @@ class DahuaCam(UnifiCamBase):
         return img_file
 
     async def run(self) -> None:
+
         if self.args.motion_index == -1:
             return
         url = (
-            f"http://{self.args.username}:{self.args.password}@{self.args.ip}"
+            f"http://{self.args.ip}"
             "/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]"
         )
         encoded_url = URL(url, encoded=True)
-        while True:
+
+        # Keep track of multiple calls of run(),
+        # since the same instance will be used across multiple reboots.
+        # When expected_iteration no longer matches _run_iteration,
+        # we know we need to stop retrying because there's a new while loop
+        # that's taken over.
+        expected_iteration = self._run_iteration
+        while expected_iteration == self._run_iteration:
             self.logger.info(f"Connecting to motion events API: {url}")
             try:
                 async with aiohttp.ClientSession(
                     timeout=aiohttp.ClientTimeout(None)
                 ) as session:
-                    async with session.request("GET", encoded_url) as resp:
+                    self._motion_session = session
+                    # Some (or maybe all?) cams need digest auth.
+                    # I modified this to also perform basic auth depending on the server response.
+                    # (https://github.com/keshavdv/unifi-cam-proxy/issues/74#issuecomment-913289921):
+                    auth = DigestAuth(self.args.username, self.args.password, session)
+                    
+                    async with await auth.request("GET", encoded_url) as resp:
                         if resp.status != 200:
                             self.logger.error(
                                 f"Motion API unsupported (status: {resp.status})"
                             )
+                            await sleep(10)
+                            continue
 
                         # The multipart respones on this endpoint
                         # are not properly formatted, so this
                         # is implemented manually
-                        while True:
-                            await asyncio.sleep(0)
+                        while not resp.content.at_eof():
                             line = (await resp.content.readline()).decode()
+                            self.logger.debug(line.strip())
                             if line.startswith("Code="):
                                 parts = line.split(";")
                                 action = parts[1].split("=")[1].strip()
@@ -124,6 +144,7 @@ class DahuaCam(UnifiCamBase):
                                     await self.trigger_motion_stop()
             except aiohttp.ClientError:
                 self.logger.error("Motion API request failed, retrying")
+                await sleep(1)
 
     def get_stream_source(self, stream_index: str) -> str:
 
@@ -136,3 +157,9 @@ class DahuaCam(UnifiCamBase):
             f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}"
             f"/cam/realmonitor?channel={self.args.channel}&subtype={subtype}"
         )
+
+    async def close(self):
+        self._run_iteration = self._run_iteration + 1
+        if self._motion_session:
+            await self._motion_session.close()
+        await super().close()
