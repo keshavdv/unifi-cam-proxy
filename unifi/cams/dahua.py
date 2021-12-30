@@ -77,10 +77,7 @@ class DahuaCam(UnifiCamBase):
 
     async def get_snapshot(self) -> Path:
         img_file = Path(self.snapshot_dir, "screen.jpg")
-        url = (
-            f"http://{self.args.ip}"
-            f"/cgi-bin/snapshot.cgi?channel={self.args.snapshot_channel}"
-        )
+        url = f"http://{self.args.ip}/cgi-bin/snapshot.cgi?channel={self.args.snapshot_channel}"
         
         try:
             async with aiohttp.ClientSession() as session:
@@ -96,10 +93,7 @@ class DahuaCam(UnifiCamBase):
 
         if self.args.motion_index == -1:
             return
-        url = (
-            f"http://{self.args.ip}"
-            "/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]"
-        )
+        url = f"http://{self.args.ip}/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]"
         encoded_url = URL(url, encoded=True)
 
         # Keep track of multiple calls of run(),
@@ -133,7 +127,7 @@ class DahuaCam(UnifiCamBase):
                         # is implemented manually
                         while not resp.content.at_eof():
                             line = (await resp.content.readline()).decode()
-                            self.logger.debug(line.strip())
+                            #self.logger.debug(line.strip())
                             if line.startswith("Code="):
                                 parts = line.split(";")
                                 action = parts[1].split("=")[1].strip()
