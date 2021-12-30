@@ -1,7 +1,5 @@
 import argparse
-import asyncio
 import logging
-from os import error
 import tempfile
 from pathlib import Path
 

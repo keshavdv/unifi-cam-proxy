@@ -88,27 +88,29 @@ unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> rts
 unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> reolink_nvr -u <username> -p <password> -c <camera_id>
 ```
 
-#### Lorex:
-  * Tested: LNB4321B (supports motion events)
+#### Dahua/Lorex/Amcrest:
+Lorex is a subsidiary of Dahua, and most Amcrest cameras are also rebranded Dahuas.
+
+* Tested: Lorex LNB4321B (supports motion events)
+* Tested: Amcrest IP8M-T2599E (supports motion events)
+
+Lorex:
 ```
 unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> lorex -u <username> -p <password>
 ```
 
-#### Dahua/Amcrest:
-  * Tested: IP8M-T2599E (supports motion events)
-
+Dahua/Amcrest:
 ```
 unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> dahua -u <username> -p <password> --motion-index 0 --snapshot-channel 1 --ffmpeg-args '-c:a copy -c:v copy -bsf:v "h264_metadata=tick_rate=30000/1001:fixed_frame_rate_flag=1"'
 ```
 
 Notes:
-* Most Amcrest cameras are rebranded Dahuas, hence why Amcrest uses the dahua module.
 * Camera configuration:
-  * Video codec must be H.264 (H.265/HEVC not supported).
+  * Video codec must be H.264 (H.265/HEVC is not supported).
   * Audio codec should be AAC. If not, adjust the ffmpeg args to re-encode to AAC.
   * Ensure the sub stream is enabled.
-  * Ensure motion detection is enabled with the desired anti-dither and detection area.
-* The `-bsf:v` parameter is needed to make live video work. The first `tick_rate` should be `fps * 2000`. See [this comment](https://github.com/keshavdv/unifi-cam-proxy/issues/31#issuecomment-841914363).
+  * If desired, ensure motion detection is enabled with the desired anti-dither and detection area.
+* The `-bsf:v` parameter is needed to make live video work. The first `tick_rate` value should be `fps * 2000`. See [this comment](https://github.com/keshavdv/unifi-cam-proxy/issues/31#issuecomment-841914363).
 
 
 #### Frigate: Supports smart detections

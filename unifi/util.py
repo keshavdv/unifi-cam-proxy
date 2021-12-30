@@ -1,32 +1,14 @@
 """Various helper functions"""
 
-import asyncio
-import base64
-import binascii
-import cgi
-import datetime
-import functools
 import hashlib
-import inspect
 import os
-import re
 import time
-import weakref
-from collections import namedtuple
-from contextlib import suppress
-from math import ceil
-from pathlib import Path
-from urllib.parse import quote
-from urllib.request import getproxies
-from aiohttp.client import _RequestContextManager
-from aiohttp.helpers import BasicAuth
-
 import www_authenticate
 
-from yarl import URL
-
 from aiohttp import client_exceptions, hdrs
-
+from aiohttp.client import _RequestContextManager
+from aiohttp.helpers import BasicAuth
+from yarl import URL
 
 class DigestAuth():
     """HTTP digest authentication helper.
