@@ -78,11 +78,19 @@ class DahuaCam(UnifiCamBase):
     async def get_snapshot(self) -> Path:
         img_file = Path(self.snapshot_dir, "screen.jpg")
         url = (
-            f"http://{self.args.username}:{self.args.password}@{self.args.ip}"
+            f"http://{self.args.ip}"
             f"/cgi-bin/snapshot.cgi?channel={self.args.snapshot_channel}"
         )
-        await self.fetch_to_file(url, img_file)
-        return img_file
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                auth = DigestAuth(self.args.username, self.args.password, session)
+                async with await auth.request("GET", url) as resp:
+                    with img_file.open("wb") as f:
+                        f.write(await resp.read())
+                        return img_file
+        except aiohttp.ClientError:
+            return img_file
 
     async def run(self) -> None:
 
