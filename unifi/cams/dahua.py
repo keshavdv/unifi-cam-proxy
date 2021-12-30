@@ -1,11 +1,11 @@
 import argparse
 import asyncio
 import logging
+from os import error
 import tempfile
 from pathlib import Path
 
 import aiohttp
-from aiohttp.helpers import BasicAuth
 from yarl import URL
 from asyncio import sleep
 
@@ -152,7 +152,7 @@ class DahuaCam(UnifiCamBase):
                                     await self.trigger_motion_stop()
             except aiohttp.ClientError:
                 self.logger.error("Motion API request failed, retrying")
-                await sleep(1)
+                await sleep(10)
 
     def get_stream_source(self, stream_index: str) -> str:
 
