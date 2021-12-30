@@ -30,6 +30,7 @@ from aiohttp import client_exceptions, hdrs
 
 class DigestAuth():
     """HTTP digest authentication helper.
+    Also performs basic auth.
     The work here is based off of
     https://github.com/aio-libs/aiohttp/pull/2213.
     """
@@ -62,6 +63,10 @@ class DigestAuth():
             headers[hdrs.AUTHORIZATION] = self._build_digest_header(
                 method.upper(), url
             )
+        else:
+            # Always preemptively perform basic auth.
+            # If this doesn't work and we need digest, the server will send back a www-authenticate header.
+            headers[hdrs.AUTHORIZATION] = BasicAuth(self.username, self.password).encode()
 
         response = await self.session.request(
             method, url, headers=headers, **kwargs
@@ -165,19 +170,13 @@ class DigestAuth():
         auth_header = response.headers.get('www-authenticate', '')
         parsed = www_authenticate.parse(auth_header)
 
-        if 'Basic' in parsed:
-            # Note: not tested, but this should work.
-            # We can't set this up front because there's no way to unset `auth` from the `session` object,
-            # and aiohttp doesn't let you set both an Authorization header and an `auth` object.
-            self.args['headers'][hdrs.AUTHORIZATION] = BasicAuth(self.username, self.password).encode()
-        elif 'Digest' in parsed:
+        if 'Digest' in parsed:
             self.challenge = parsed["Digest"]
-        else:
-            return response
-
-        return await self.request(
-            self.args['method'],
-            self.args['url'],
-            headers=self.args['headers'],
-            **self.args['kwargs']
-        )
+            return await self.request(
+                self.args['method'],
+                self.args['url'],
+                headers=self.args['headers'],
+                **self.args['kwargs']
+            )
+            
+        return response

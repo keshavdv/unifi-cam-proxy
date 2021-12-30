@@ -14,6 +14,7 @@ CAMS = {
     "frigate": FrigateCam,
     "hikvision": HikvisionCam,
     "lorex": DahuaCam,
+    "amcrest": DahuaCam,
     "dahua": DahuaCam,
     "reolink_nvr": ReolinkNVRCam,
     "rtsp": RTSPCam,
