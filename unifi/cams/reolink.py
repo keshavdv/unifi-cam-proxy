@@ -19,21 +19,37 @@ class Reolink(UnifiCamBase):
     @classmethod
     def add_parser(cls, parser: argparse.ArgumentParser) -> None:
         super().add_parser(parser)
-        parser.add_argument("--username", "-u", required=True, help="Camera username")
-        parser.add_argument("--password", "-p", required=True, help="Camera password")
-        parser.add_argument("--channel", "-c", required=True, help="Camera channel (0 for main 1 for sub)")
+        parser.add_argument(
+            "--username",
+            "-u",
+            required=True,
+            help="Camera username"
+        )
+        parser.add_argument(
+            "--password",
+            "-p",
+            required=True,
+            help="Camera password"
+        )
+        parser.add_argument(
+            "--channel",
+            "-c",
+            required=True,
+            help="Camera channel (0 for main 1 for sub)"
+        )
 
     async def get_snapshot(self) -> Path:
         img_file = Path(self.snapshot_dir, "screen.jpg")
         url = (
             f"http://{self.args.ip}"
             f"/cgi-bin/api.cgi?cmd=Snap&channel={self.args.channel}"
-            f"&rs=6PHVjvf0UntSLbyT&user={self.args.username}&password={self.args.password}"
+            f"&rs=6PHVjvf0UntSLbyT&user={self.args.username}"
+            f"&password={self.args.password}"
         )
         self.logger.info(f"Grabbing snapshot: {url}")
         await self.fetch_to_file(url, img_file)
         return img_file
-        
+
     async def run(self) -> None:
         url = (
             f"http://{self.args.ip}"
