@@ -38,7 +38,7 @@ class UnifiCamBase(metaclass=ABCMeta):
         self._motion_snapshot: Optional[Path] = None
         self._motion_event_id: int = 0
         self._motion_event_ts: Optional[float] = None
-        self._ffmpeg_handles = {}
+        self._ffmpeg_handles: Dict[str, subprocess.Popen] = {}
 
         # Set up ssl context for requests
         self._ssl_context = ssl.create_default_context()
@@ -70,6 +70,7 @@ class UnifiCamBase(metaclass=ABCMeta):
             try:
                 msg = await ws.recv()
             except websockets.exceptions.ConnectionClosedError:
+                self.logger.info(f"Connection to {self.args.host} was closed.")
                 raise RetryableError()
 
             if msg is not None:
@@ -873,37 +874,28 @@ class UnifiCamBase(metaclass=ABCMeta):
     def start_video_stream(
         self, stream_index: str, stream_name: str, destination: Tuple[str, int]
     ):
-        if (
-            stream_index in self._ffmpeg_handles
-            and self._ffmpeg_handles[stream_index].poll() is not None
-        ):
-            self.logger.warn(
-                f"Stream {stream_index} terminated unexpectedly: "
-                + self._ffmpeg_handles[stream_index].stderr.read()
-            )
+        has_spawned = stream_index in self._ffmpeg_handles
+        is_dead = has_spawned and self._ffmpeg_handles[stream_index].poll() is not None
 
-        if (
-            stream_index not in self._ffmpeg_handles
-            or self._ffmpeg_handles[stream_index].poll() is not None
-        ):
+        if (not has_spawned or is_dead):
             source = self.get_stream_source(stream_index)
             cmd = (
-                "ffmpeg -nostdin -y -stimeout 15000000"
+                "ffmpeg -nostdin -loglevel error -y -stimeout 15000000"
                 f" -rtsp_transport {self.args.rtsp_transport}"
                 f' -i "{source}" {self.args.ffmpeg_args}'
                 f" -metadata streamname={stream_name} -f flv -"
                 f" | {sys.executable} -m unifi.clock_sync"
                 f" | nc {destination[0]} {destination[1]}"
             )
+
+            if is_dead:
+                self.logger.warn(f"Previous ffmpeg process for {stream_index} died.")
+
             self.logger.info(
                 f"Spawning ffmpeg for {stream_index} ({stream_name}): {cmd}"
             )
             self._ffmpeg_handles[stream_index] = subprocess.Popen(
-                cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE,
-                shell=True,
-                text=True,
+                cmd, stdout=subprocess.DEVNULL, shell=True
             )
 
     def stop_video_stream(self, stream_index: str):
