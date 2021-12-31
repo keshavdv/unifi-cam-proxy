@@ -10,6 +10,7 @@ from aiohttp.client import _RequestContextManager
 from aiohttp.helpers import BasicAuth
 from yarl import URL
 
+
 class DigestAuth():
     """HTTP digest authentication helper.
     Also performs basic auth.

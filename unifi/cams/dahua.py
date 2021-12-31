@@ -125,7 +125,7 @@ class DahuaCam(UnifiCamBase):
                         # is implemented manually
                         while not resp.content.at_eof():
                             line = (await resp.content.readline()).decode()
-                            #self.logger.debug(line.strip())
+                            # self.logger.debug(line.strip())
                             if line.startswith("Code="):
                                 parts = line.split(";")
                                 action = parts[1].split("=")[1].strip()
