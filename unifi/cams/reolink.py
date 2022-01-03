@@ -15,7 +15,8 @@ class Reolink(UnifiCamBase):
         super().__init__(args, logger)
         self.snapshot_dir: str = tempfile.mkdtemp()
         self.motion_in_progress: bool = False
-
+        self.substream = args.substream
+        
     @classmethod
     def add_parser(cls, parser: argparse.ArgumentParser) -> None:
         super().add_parser(parser)
@@ -34,9 +35,20 @@ class Reolink(UnifiCamBase):
         parser.add_argument(
             "--channel",
             "-c",
-            required=True,
-            help="Camera channel (0 for main 1 for sub)"
+            default=0,
+            help="Camera channel (not needed, leaving for possible future)"
         )
+
+        parser.add_argument(
+            "--substream",
+            "-s",
+            default='main',
+            type=str,
+            choices=['main', 'sub'],
+            required=True,
+            help="Camera rtsp url substream index main, or sub"
+        )
+
 
     async def get_snapshot(self) -> Path:
         img_file = Path(self.snapshot_dir, "screen.jpg")
@@ -105,5 +117,5 @@ class Reolink(UnifiCamBase):
     def get_stream_source(self, stream_index: str) -> str:
         return (
             f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}:554"
-            f"//h264Preview_{int(self.args.channel) + 1:02}_main"
+            f"//h264Preview_{int(self.args.channel) + 1:02}_{self.args.substream}"
         )
