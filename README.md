@@ -91,7 +91,7 @@ unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> reo
 ```
 Sub camera stream example
 ```
-unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> reolink -u <username> -p <password> -s sub --ffmpeg-args='-c:v copy -bsf:v "h264_metadata=tick_rate=30000/1001:fixed_frame_rate_flag=1" -ar 32000 -ac 2 -codec:a aac -b:a 32k'
+unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> reolink -u <username> -p <password> -s sub --ffmpeg-args='-c:v copy -bsf:v "h264_metadata=tick_rate=30000/1001:fixed_frame_rate_flag=1" -an'
 ```
 * (Note: Camera/channel arguments are either -s main, or -s sub. The substream is limited to a maximum 15fps so note the tick_rate in the example)
 
