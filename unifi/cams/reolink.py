@@ -53,7 +53,8 @@ class Reolink(UnifiCamBase):
     async def run(self) -> None:
         url = (
             f"http://{self.args.ip}"
-            f"/api.cgi?user={self.args.username}&password={self.args.password}"
+            f"/api.cgi?cmd=GetMdState&user={self.args.username}"
+            f"&password={self.args.password}"
         )
         encoded_url = URL(url, encoded=True)
 
