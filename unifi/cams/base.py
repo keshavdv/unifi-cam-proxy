@@ -24,7 +24,7 @@ AVClientRequest = AVClientResponse = Dict[str, Any]
 
 class SmartDetectObjectType(Enum):
     PERSON = "person"
-    CAR = "car"
+    VEHICLE = "vehicle"
 
 
 class UnifiCamBase(metaclass=ABCMeta):
