@@ -11,12 +11,13 @@ from unifi.cams.base import UnifiCamBase
 
 
 class Reolink(UnifiCamBase):
-    def __init__(self, args: argparse.Namespace, logger: logging.Logger) -> None:
+    def __init__(self, args: argparse.Namespace,
+                 logger: logging.Logger) -> None:
         super().__init__(args, logger)
         self.snapshot_dir: str = tempfile.mkdtemp()
         self.motion_in_progress: bool = False
         self.substream = args.substream
-        
+
     @classmethod
     def add_parser(cls, parser: argparse.ArgumentParser) -> None:
         super().add_parser(parser)
@@ -48,7 +49,6 @@ class Reolink(UnifiCamBase):
             required=True,
             help="Camera rtsp url substream index main, or sub"
         )
-
 
     async def get_snapshot(self) -> Path:
         img_file = Path(self.snapshot_dir, "screen.jpg")
@@ -89,12 +89,14 @@ class Reolink(UnifiCamBase):
                                     if json_body[0]["value"]["state"] == 1:
                                         if not self.motion_in_progress:
                                             self.motion_in_progress = True
-                                            self.logger.info("Trigger motion start")
+                                            self.logger.info(
+                                                "Trigger motion start")
                                             await self.trigger_motion_start()
                                     elif json_body[0]["value"]["state"] == 0:
                                         if self.motion_in_progress:
                                             self.motion_in_progress = False
-                                            self.logger.info("Trigger motion end")
+                                            self.logger.info(
+                                                "Trigger motion end")
                                             await self.trigger_motion_stop()
                                 else:
                                     self.logger.error(
@@ -112,10 +114,10 @@ class Reolink(UnifiCamBase):
                                 )
 
             except aiohttp.ClientError as err:
-                self.logger.error(f"Motion API request failed, retrying. Error: {err}")
+                self.logger.error(
+                    f"Motion API request failed, retrying. Error: {err}")
 
     def get_stream_source(self, stream_index: str) -> str:
         return (
             f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}:554"
-            f"//h264Preview_{int(self.args.channel) + 1:02}_{self.args.substream}"
-        )
+            f"//h264Preview_{int(self.args.channel) + 1:02}_{self.args.substream}")

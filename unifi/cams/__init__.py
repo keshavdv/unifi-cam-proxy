@@ -5,4 +5,5 @@ from unifi.cams.reolink import Reolink
 from unifi.cams.reolink_nvr import ReolinkNVRCam
 from unifi.cams.rtsp import RTSPCam
 
-__all__ = ["FrigateCam", "HikvisionCam", "DahuaCam", "RTSPCam", "Reolink", "ReolinkNVRCam"]
+__all__ = ["FrigateCam", "HikvisionCam", "DahuaCam",
+           "RTSPCam", "Reolink", "ReolinkNVRCam"]

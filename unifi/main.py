@@ -24,7 +24,8 @@ CAMS = {
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--version", action="version", version=__version__)
-    parser.add_argument("--host", "-H", required=True, help="NVR ip address and port")
+    parser.add_argument("--host", "-H", required=True,
+                        help="NVR ip address and port")
     parser.add_argument(
         "--cert",
         "-c",
@@ -33,7 +34,11 @@ def parse_args():
         help="Client certificate path",
     )
     parser.add_argument("--token", "-t", required=True, help="Adoption token")
-    parser.add_argument("--mac", "-m", default="AABBCCDDEEFF", help="MAC address")
+    parser.add_argument(
+        "--mac",
+        "-m",
+        default="AABBCCDDEEFF",
+        help="MAC address")
     parser.add_argument(
         "--ip",
         "-i",
