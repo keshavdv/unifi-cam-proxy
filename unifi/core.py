@@ -24,7 +24,8 @@ class Core(object):
         self.ssl_context.load_cert_chain(args.cert, args.cert)
 
     async def run(self) -> None:
-        uri = "wss://{}:7442/camera/1.0/ws?token={}".format(self.host, self.token)
+        uri = "wss://{}:7442/camera/1.0/ws?token={}".format(
+            self.host, self.token)
         headers = {"camera-mac": self.mac}
         has_connected = False
 

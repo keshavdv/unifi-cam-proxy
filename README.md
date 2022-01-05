@@ -78,11 +78,24 @@ unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> hik
 
 #### Reolink:
 * Standalone cameras
-    * Tested: RLC-410-5MP
+    * Tested: RLC-410-5MP 
 ```
-unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> rtsp -s <rtsp stream> --ffmpeg-args '-c:v copy -vbsf "h264_metadata=tick_rate=60000/1001:fixed_frame_rate_flag=1" -ar 32000 -ac 2 -codec:a aac -b:a 32k'
-```
+unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> rtsp -s <rtsp stream> --ffmpeg-args='-c:v copy -bsf:v "h264_metadata=tick_rate=60000/1001:fixed_frame_rate_flag=1" -ar 32000 -ac 2 -codec:a aac -b:a 32k'
 
+```
+* Standalone cameras using proper Snapshot URL and Motion-Det API url using Camera Substream (main or sub) *work in progress*
+
+Main camera stream example
+```
+unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> reolink -u <username> -p <password> -s main --ffmpeg-args='-c:v copy -bsf:v "h264_metadata=tick_rate=60000/1001:fixed_frame_rate_flag=1" -ar 32000 -ac 2 -codec:a aac -b:a 32k'
+```
+Sub camera stream example
+```
+unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> reolink -u <username> -p <password> -s sub --ffmpeg-args='-c:v copy -bsf:v "h264_metadata=tick_rate=30000/1001:fixed_frame_rate_flag=1" -ar 32000 -ac 2 -codec:a aac -b:a 32k'
+```
+* (Note: Camera/channel arguments are either -s main, or -s sub. The substream is limited to a maximum 15fps so note the tick_rate in the example)
+
+Reolink NVR
 * NVR (Note: Camera/channel IDs are zero-based)
 ```
 unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> reolink_nvr -u <username> -p <password> -c <camera_id>

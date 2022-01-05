@@ -26,8 +26,10 @@ class HikvisionCam(UnifiCamBase):
     @classmethod
     def add_parser(cls, parser: argparse.ArgumentParser) -> None:
         super().add_parser(parser)
-        parser.add_argument("--username", "-u", required=True, help="Camera username")
-        parser.add_argument("--password", "-p", required=True, help="Camera password")
+        parser.add_argument("--username", "-u",
+                            required=True, help="Camera username")
+        parser.add_argument("--password", "-p",
+                            required=True, help="Camera password")
         parser.add_argument(
             "--channel", "-c", default=1, type=int, help="Camera channel index"
         )
