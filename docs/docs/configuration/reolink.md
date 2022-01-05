@@ -8,21 +8,10 @@ sidebar_position: 4
 If your camera model is not listed specifically below, try the following:
 
 ```
-unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> rtsp -s <rtsp stream> --ffmpeg-args '-c:v copy -vbsf "h264_metadata=tick_rate=60000/1001:fixed_frame_rate_flag=1" -ar 32000 -ac 2 -codec:a aac -b:a 32k'
-
+unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> reolink -u {username} -p {password} --ffmpeg-args '-c:v copy -vbsf "h264_metadata=tick_rate=60000/1001" -ar 32000 -ac 1 -codec:a aac -b:a 32k'
 ```
 
-### NVR (Reolink RLN16-410)
-- [x] Supports full time recording
-- [x] Supports motion events
-- [ ] Supports smart detection
-- Notes:
-  *  Camera/channel IDs are zero-based
-```
-unifi-cam-proxy -H {Protect IP} -i {Reolink NVR IP} -c client.pem -t {Adoption token} reolink_nvr -u {username} -p {password} -c {Camera channel}
-```
-
-#### Options
+### Options
 ```
 optional arguments:
   -h, --help            show this help message and exit
@@ -31,21 +20,24 @@ optional arguments:
   --rtsp-transport {tcp,udp,http,udp_multicast}
                         RTSP transport protocol used by stream
   --username USERNAME, -u USERNAME
-                        NVR username
+                        Camera username
   --password PASSWORD, -p PASSWORD
-                        NVR password
-  --channel CHANNEL, -c CHANNEL
-                        NVR camera channel
-```                        
-
-
-
+                        Camera password
+  --substream SUBSTREAM, -s CHANNEL
+                        Camera rtsp url substream index main, or sub
+```        
 
 ### RLC-410-5MP
 - [x] Supports full time recording
-- [ ] Supports motion events
+- [x] Supports motion events
 - [ ] Supports smart detection
- 
+- Notes:
+  *  When using the 'sub' substream, use `tick_rate=30000/1001` because the stream is limited to a maximum of 15fps
+
 ```
-unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> rtsp -s <rtsp stream> --ffmpeg-args '-c:v copy -vbsf "h264_metadata=tick_rate=60000/1001" -ar 32000 -ac 1 -codec:a aac -b:a 32k'
+unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> \
+    reolink \
+    -u {username} \
+    -p {password} \
+    --ffmpeg-args '-c:v copy -vbsf "h264_metadata=tick_rate=60000/1001" -ar 32000 -ac 1 -codec:a aac -b:a 32k'
 ```
