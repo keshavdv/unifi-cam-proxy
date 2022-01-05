@@ -54,7 +54,7 @@ class FrigateCam(RTSPCam):
     def label_to_object_type(cls, label: str) -> Optional[SmartDetectObjectType]:
         if label == "person":
             return SmartDetectObjectType.PERSON
-        elif label == "vehicle":
+        elif label in {"vehicle", "car", "motorcycle", "bus"}:
             return SmartDetectObjectType.VEHICLE
 
     async def run(self) -> None:
