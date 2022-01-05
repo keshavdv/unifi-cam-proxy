@@ -8,7 +8,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 const config = {
   title: 'unifi-cam-proxy',
   tagline: 'Dinosaurs are cool',
-  url: 'https://unifi-cam-proxy.github.io',
+  url: 'https://unifi-cam-proxy.com',
   baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
