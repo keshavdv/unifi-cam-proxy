@@ -15,7 +15,7 @@ const config = {
   favicon: 'img/favicon.ico',
   organizationName: 'keshavdv', // Usually your GitHub org/user name.
   projectName: 'unifi-cam-proxy', // Usually your repo name.
-
+  trailingSlash: false,
   presets: [
     [
       'classic',
