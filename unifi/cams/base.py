@@ -132,8 +132,7 @@ class UnifiCamBase(metaclass=ABCMeta):
                     }
                 )
 
-            self.logger.info(
-                f"Triggering motion start (idx: {self._motion_event_id})")
+            self.logger.info(f"Triggering motion start (idx: {self._motion_event_id})")
             await self.send(
                 self.gen_response(
                     "EventSmartDetect" if object_type else "EventAnalytics",
@@ -143,12 +142,10 @@ class UnifiCamBase(metaclass=ABCMeta):
             self._motion_event_ts = time.time()
 
             # Capture snapshot at beginning of motion event for thumbnail
-            motion_snapshot_path: str = tempfile.NamedTemporaryFile(
-                delete=False).name
+            motion_snapshot_path: str = tempfile.NamedTemporaryFile(delete=False).name
             try:
                 shutil.copyfile(await self.get_snapshot(), motion_snapshot_path)
-                self.logger.debug(
-                    f"Captured motion snapshot to {motion_snapshot_path}")
+                self.logger.debug(f"Captured motion snapshot to {motion_snapshot_path}")
                 self._motion_snapshot = Path(motion_snapshot_path)
             except FileNotFoundError:
                 pass
@@ -181,8 +178,7 @@ class UnifiCamBase(metaclass=ABCMeta):
                         "smartDetectSnapshot": "motionsnap.jpg",
                     }
                 )
-            self.logger.info(
-                f"Triggering motion stop (idx: {self._motion_event_id})")
+            self.logger.info(f"Triggering motion stop (idx: {self._motion_event_id})")
             await self.send(
                 self.gen_response(
                     "EventSmartDetect" if object_type else "EventAnalytics",

@@ -26,8 +26,7 @@ class FrigateCam(RTSPCam):
     def add_parser(cls, parser: argparse.ArgumentParser) -> None:
         super().add_parser(parser)
         parser.add_argument("--mqtt-host", required=True, help="MQTT server")
-        parser.add_argument("--mqtt-port", default=1883,
-                            type=int, help="MQTT server")
+        parser.add_argument("--mqtt-port", default=1883, type=int, help="MQTT server")
         parser.add_argument(
             "--mqtt-prefix", default="frigate", type=str, help="Topic prefix"
         )
@@ -116,8 +115,7 @@ class FrigateCam(RTSPCam):
                     ):
                         # Wait for the best snapshot to be ready before
                         # ending the motion event
-                        self.logger.info(
-                            f"Awaiting snapshot (id: {self.event_id})")
+                        self.logger.info(f"Awaiting snapshot (id: {self.event_id})")
                         await self.event_snapshot_ready.wait()
                         self.logger.info(
                             f"Ending {self.event_label} motion event"
