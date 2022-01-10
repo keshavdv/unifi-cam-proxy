@@ -18,10 +18,11 @@ from unifi.core import Core
 from unifi.version import __version__
 
 CAMS = {
+    "armcrest": DahuaCam,
+    "dahua": DahuaCam,
     "frigate": FrigateCam,
     "hikvision": HikvisionCam,
     "lorex": DahuaCam,
-    "dahua": DahuaCam,
     "reolink": Reolink,
     "reolink_nvr": ReolinkNVRCam,
     "rtsp": RTSPCam,
