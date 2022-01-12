@@ -108,9 +108,10 @@ def main():
         coloredlogs.install(level=level, logger=logger)
 
     # Preflight checks
-    if which("ffmpeg") is None:
-        logger.error("ffmpeg is not installed")
-        sys.exit(1)
+    for binary in ["ffmpeg", "nc"]:
+        if which(binary) is None:
+            logger.error(f"{binary} is not installed")
+            sys.exit(1)
 
     cam = klass(args, logger)
     c = Core(args, cam, core_logger)

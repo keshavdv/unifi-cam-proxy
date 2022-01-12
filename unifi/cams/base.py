@@ -874,6 +874,15 @@ class UnifiCamBase(metaclass=ABCMeta):
         self, stream_index: str, stream_name: str, destination: Tuple[str, int]
     ):
         if (
+            stream_index in self._ffmpeg_handles
+            and self._ffmpeg_handles[stream_index].poll() is not None
+        ):
+            self.logger.warn(
+                f"Stream {stream_index} terminated unexpectedly: "
+                + self._ffmpeg_handles[stream_index].stderr.read()
+            )
+
+        if (
             stream_index not in self._ffmpeg_handles
             or self._ffmpeg_handles[stream_index].poll() is not None
         ):
@@ -890,7 +899,11 @@ class UnifiCamBase(metaclass=ABCMeta):
                 f"Spawning ffmpeg for {stream_index} ({stream_name}): {cmd}"
             )
             self._ffmpeg_handles[stream_index] = subprocess.Popen(
-                cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                shell=True,
+                text=True,
             )
 
     def stop_video_stream(self, stream_index: str):
