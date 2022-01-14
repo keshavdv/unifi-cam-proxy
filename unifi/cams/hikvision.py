@@ -46,7 +46,7 @@ class HikvisionCam(UnifiCamBase):
                 for chunk in resp.iter_content(chunk_size=1024):
                     if chunk:
                         f.write(chunk)
-        except requests.exceptions.ReadTimeout:
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError):
             pass
         return img_file
 
