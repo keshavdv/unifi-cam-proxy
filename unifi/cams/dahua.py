@@ -1,13 +1,12 @@
 import argparse
-import asyncio
 import logging
 import tempfile
 from pathlib import Path
 
-import aiohttp
-from yarl import URL
+from amcrest import AmcrestCamera
+from amcrest.exceptions import CommError
 
-from unifi.cams.base import UnifiCamBase
+from unifi.cams.base import SmartDetectObjectType, UnifiCamBase
 
 
 class DahuaCam(UnifiCamBase):
@@ -18,6 +17,10 @@ class DahuaCam(UnifiCamBase):
             self.args.snapshot_channel = self.args.channel - 1
         if self.args.motion_index is None:
             self.args.motion_index = self.args.snapshot_channel
+
+        self.camera = AmcrestCamera(
+            self.args.ip, 80, self.args.username, self.args.password
+        ).camera
 
     @classmethod
     def add_parser(cls, parser: argparse.ArgumentParser) -> None:
@@ -73,56 +76,47 @@ class DahuaCam(UnifiCamBase):
 
     async def get_snapshot(self) -> Path:
         img_file = Path(self.snapshot_dir, "screen.jpg")
-        url = (
-            f"http://{self.args.username}:{self.args.password}@{self.args.ip}"
-            f"/cgi-bin/snapshot.cgi?channel={self.args.snapshot_channel}"
-        )
-        await self.fetch_to_file(url, img_file)
+        try:
+            snapshot = await self.camera.async_snapshot(
+                channel=self.args.snapshot_channel
+            )
+            with img_file.open("wb") as f:
+                f.write(snapshot)
+        except CommError as e:
+            self.logger.warning("Could not fetch snapshot", exc_info=e)
+            pass
         return img_file
 
     async def run(self) -> None:
         if self.args.motion_index == -1:
             return
-        url = (
-            f"http://{self.args.username}:{self.args.password}@{self.args.ip}"
-            "/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]"
-        )
-        encoded_url = URL(url, encoded=True)
         while True:
-            self.logger.info(f"Connecting to motion events API: {url}")
+            self.logger.info("Connecting to motion events API")
             try:
-                async with aiohttp.ClientSession(
-                    timeout=aiohttp.ClientTimeout(None)
-                ) as session:
-                    async with session.request("GET", encoded_url) as resp:
-                        if resp.status != 200:
-                            self.logger.error(
-                                f"Motion API unsupported (status: {resp.status})"
-                            )
+                async for event in self.camera.async_event_actions(
+                    eventcodes="VideoMotion,SmartMotionHuman,SmartMotionVehicle"
+                ):
+                    code = event[0]
+                    action = event[1].get("action")
+                    index = event[1].get("index")
 
-                        # The multipart respones on this endpoint
-                        # are not properly formatted, so this
-                        # is implemented manually
-                        while True:
-                            await asyncio.sleep(0)
-                            line = (await resp.content.readline()).decode()
-                            if line.startswith("Code="):
-                                parts = line.split(";")
-                                action = parts[1].split("=")[1].strip()
-                                index = parts[2].split("=")[1].strip()
-                                if index != f"{self.args.motion_index}":
-                                    continue
-                                if action == "Start":
-                                    self.logger.info(
-                                        f"Trigger motion start for index {index}"
-                                    )
-                                    await self.trigger_motion_start()
-                                elif action == "Stop":
-                                    self.logger.info(
-                                        f"Trigger motion end for index {index}"
-                                    )
-                                    await self.trigger_motion_stop()
-            except aiohttp.ClientError:
+                    if not index or int(index) != self.args.motion_index:
+                        self.logger.debug(f"Skipping event {event}")
+                        continue
+
+                    object_type = None
+                    if code == "SmartMotionHuman":
+                        object_type = SmartDetectObjectType.PERSON
+                    elif code == "SmartMotionVehicle":
+                        object_type = SmartDetectObjectType.VEHICLE
+
+                    if action == "Start":
+                        self.logger.info(f"Trigger motion start for index {index}")
+                        await self.trigger_motion_start(object_type)
+                    elif action == "Stop":
+                        self.logger.info(f"Trigger motion end for index {index}")
+                        await self.trigger_motion_stop(object_type)
+            except CommError:
                 self.logger.error("Motion API request failed, retrying")
 
     def get_stream_source(self, stream_index: str) -> str:
@@ -132,7 +126,4 @@ class DahuaCam(UnifiCamBase):
         else:
             subtype = self.args.sub_stream
 
-        return (
-            f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}"
-            f"/cam/realmonitor?channel={self.args.channel}&subtype={subtype}"
-        )
+        return self.camera.rtsp_url(channel=self.args.channel, typeno=subtype)
