@@ -18,7 +18,7 @@ from unifi.core import Core
 from unifi.version import __version__
 
 CAMS = {
-    "armcrest": DahuaCam,
+    "amcrest": DahuaCam,
     "dahua": DahuaCam,
     "frigate": FrigateCam,
     "hikvision": HikvisionCam,
