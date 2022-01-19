@@ -57,10 +57,12 @@ class Core(object):
                 elif e.status_code == 429:
                     return True
                 raise
+            except asyncio.exceptions.TimeoutError:
+                self.logger.info(f"Connection to {self.host} timed out.")
+                return True
             except ConnectionRefusedError:
-                if has_connected:
-                    return True
-                raise
+                self.logger.info(f"Connection to {self.host} refused.")
+                return True
 
             try:
                 await asyncio.gather(self.cam._run(ws), self.cam.run())
