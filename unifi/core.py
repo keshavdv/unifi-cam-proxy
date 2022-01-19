@@ -64,9 +64,16 @@ class Core(object):
                 self.logger.info(f"Connection to {self.host} refused.")
                 return True
 
+            tasks = [
+                asyncio.create_task(self.cam._run(ws)),
+                asyncio.create_task(self.cam.run()),
+            ]
             try:
-                await asyncio.gather(self.cam._run(ws), self.cam.run())
+                await asyncio.gather(*tasks)
             except RetryableError:
+                for task in tasks:
+                    if not task.done():
+                        task.cancel()
                 return True
             finally:
                 await self.cam.close()

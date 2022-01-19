@@ -877,7 +877,7 @@ class UnifiCamBase(metaclass=ABCMeta):
         has_spawned = stream_index in self._ffmpeg_handles
         is_dead = has_spawned and self._ffmpeg_handles[stream_index].poll() is not None
 
-        if (not has_spawned or is_dead):
+        if not has_spawned or is_dead:
             source = self.get_stream_source(stream_index)
             cmd = (
                 "ffmpeg -nostdin -loglevel error -y -stimeout 15000000"
