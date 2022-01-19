@@ -47,5 +47,5 @@ unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> \
     -p <password> \
     --motion-index 0 \
     --snapshot-channel 1 \
-    --ffmpeg-args '-c:a copy -c:v copy -bsf:v "h264_metadata=tick_rate=30000/1001"'
+    --ffmpeg-args='-c:a copy -c:v copy -bsf:v "h264_metadata=tick_rate=30000/1001"'
 ```
