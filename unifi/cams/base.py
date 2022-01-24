@@ -96,6 +96,9 @@ class UnifiCamBase(metaclass=ABCMeta):
     def get_stream_source(self, stream_index: str) -> str:
         raise NotImplementedError("You need to write this!")
 
+    def get_extra_ffmpeg_args(self) -> str:
+        return self.args.ffmpeg_args
+
     def get_feature_flags(self) -> Dict[str, Any]:
         return {
             "mic": True,
@@ -871,6 +874,25 @@ class UnifiCamBase(metaclass=ABCMeta):
 
         return False
 
+    def get_base_ffmpeg_args(self) -> str:
+        base_args = [
+            "-avoid_negative_ts",
+            "make_zero",
+            "-fflags",
+            "+genpts+discardcorrupt",
+        ]
+
+        try:
+            output = subprocess.check_output(["ffmpeg", "-h", "full"])
+            if b"stimeout" in output:
+                base_args.append("-stimeout 15000000")
+            else:
+                base_args.append("-timeout 15000000")
+        except subprocess.CalledProcessError:
+            self.logger.exception("Could not check for ffmpeg options")
+
+        return " ".join(base_args)
+
     def start_video_stream(
         self, stream_index: str, stream_name: str, destination: Tuple[str, int]
     ):
@@ -880,9 +902,9 @@ class UnifiCamBase(metaclass=ABCMeta):
         if not has_spawned or is_dead:
             source = self.get_stream_source(stream_index)
             cmd = (
-                "ffmpeg -nostdin -loglevel error -y -stimeout 15000000"
+                f"ffmpeg -nostdin -loglevel error -y {self.get_base_ffmpeg_args()}"
                 f" -rtsp_transport {self.args.rtsp_transport}"
-                f' -i "{source}" {self.args.ffmpeg_args}'
+                f' -i "{source}" {self.get_extra_ffmpeg_args()}'
                 f" -metadata streamname={stream_name} -f flv -"
                 f" | {sys.executable} -m unifi.clock_sync"
                 f" | nc {destination[0]} {destination[1]}"
