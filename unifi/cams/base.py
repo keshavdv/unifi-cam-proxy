@@ -38,6 +38,7 @@ class UnifiCamBase(metaclass=ABCMeta):
         self._motion_snapshot: Optional[Path] = None
         self._motion_event_id: int = 0
         self._motion_event_ts: Optional[float] = None
+        self._motion_object_type: Optional[SmartDetectObjectType] = None
         self._ffmpeg_handles: Dict[str, subprocess.Popen] = {}
 
         # Set up ssl context for requests
@@ -82,10 +83,10 @@ class UnifiCamBase(metaclass=ABCMeta):
     async def run(self) -> None:
         pass
 
-    def get_video_settings(self) -> Dict[str, Any]:
+    async def get_video_settings(self) -> Dict[str, Any]:
         return {}
 
-    def change_video_settings(self, options) -> None:
+    async def change_video_settings(self, options) -> None:
         pass
 
     @abstractmethod
@@ -93,13 +94,13 @@ class UnifiCamBase(metaclass=ABCMeta):
         raise NotImplementedError("You need to write this!")
 
     @abstractmethod
-    def get_stream_source(self, stream_index: str) -> str:
+    async def get_stream_source(self, stream_index: str) -> str:
         raise NotImplementedError("You need to write this!")
 
     def get_extra_ffmpeg_args(self) -> str:
         return self.args.ffmpeg_args
 
-    def get_feature_flags(self) -> Dict[str, Any]:
+    async def get_feature_flags(self) -> Dict[str, Any]:
         return {
             "mic": True,
             "aec": [],
@@ -154,10 +155,9 @@ class UnifiCamBase(metaclass=ABCMeta):
             except FileNotFoundError:
                 pass
 
-    async def trigger_motion_stop(
-        self, object_type: Optional[SmartDetectObjectType] = None
-    ) -> None:
+    async def trigger_motion_stop(self) -> None:
         motion_start_ts = self._motion_event_ts
+        motion_object_type = self._motion_object_type
         if motion_start_ts:
             payload: Dict[str, Any] = {
                 "clockBestMonotonic": int(self.get_uptime()),
@@ -173,10 +173,10 @@ class UnifiCamBase(metaclass=ABCMeta):
                 "motionHeatmap": "heatmap.png",
                 "motionSnapshot": "motionsnap.jpg",
             }
-            if object_type:
+            if motion_object_type:
                 payload.update(
                     {
-                        "objectTypes": [object_type.value],
+                        "objectTypes": [motion_object_type.value],
                         "edgeType": "leave",
                         "zonesStatus": {"0": 48},
                         "smartDetectSnapshot": "motionsnap.jpg",
@@ -185,12 +185,13 @@ class UnifiCamBase(metaclass=ABCMeta):
             self.logger.info(f"Triggering motion stop (idx: {self._motion_event_id})")
             await self.send(
                 self.gen_response(
-                    "EventSmartDetect" if object_type else "EventAnalytics",
+                    "EventSmartDetect" if motion_object_type else "EventAnalytics",
                     payload=payload,
                 ),
             )
             self._motion_event_id += 1
             self._motion_event_ts = None
+            self._motion_object_type = None
 
     def update_motion_snapshot(self, path: Path) -> None:
         self._motion_snapshot = path
@@ -233,7 +234,7 @@ class UnifiCamBase(metaclass=ABCMeta):
                     "totalLoad": 0.5474,
                     "upgradeTimeoutSec": 150,
                     "uptime": int(self.get_uptime()),
-                    "features": self.get_feature_flags(),
+                    "features": await self.get_feature_flags(),
                 },
             ),
         )
@@ -244,7 +245,7 @@ class UnifiCamBase(metaclass=ABCMeta):
             msg["messageId"],
             {
                 "authToken": self.args.token,
-                "features": self.get_feature_flags(),
+                "features": await self.get_feature_flags(),
             },
         )
 
@@ -308,7 +309,7 @@ class UnifiCamBase(metaclass=ABCMeta):
             "wdr": 1,
             "zoomPosition": 0,
         }
-        payload.update(self.get_video_settings())
+        payload.update(await self.get_video_settings())
         return self.gen_response(
             "ResetIspSettings",
             msg["messageId"],
@@ -337,7 +338,7 @@ class UnifiCamBase(metaclass=ABCMeta):
                                 host, port = urllib.parse.urlparse(
                                     v["avSerializer"]["destinations"][0]
                                 ).netloc.split(":")
-                                self.start_video_stream(
+                                await self.start_video_stream(
                                     k, stream, destination=(host, int(port))
                                 )
                             except ValueError:
@@ -730,9 +731,9 @@ class UnifiCamBase(metaclass=ABCMeta):
         }
 
         if msg["payload"]:
-            self.change_video_settings(msg["payload"])
+            await self.change_video_settings(msg["payload"])
 
-        payload.update(self.get_video_settings())
+        payload.update(await self.get_video_settings())
         return self.gen_response("ChangeIspSettings", msg["messageId"], payload)
 
     async def process_analytics_settings(
@@ -893,14 +894,14 @@ class UnifiCamBase(metaclass=ABCMeta):
 
         return " ".join(base_args)
 
-    def start_video_stream(
+    async def start_video_stream(
         self, stream_index: str, stream_name: str, destination: Tuple[str, int]
     ):
         has_spawned = stream_index in self._ffmpeg_handles
         is_dead = has_spawned and self._ffmpeg_handles[stream_index].poll() is not None
 
         if not has_spawned or is_dead:
-            source = self.get_stream_source(stream_index)
+            source = await self.get_stream_source(stream_index)
             cmd = (
                 f"ffmpeg -nostdin -loglevel error -y {self.get_base_ffmpeg_args()}"
                 f" -rtsp_transport {self.args.rtsp_transport}"
@@ -927,6 +928,7 @@ class UnifiCamBase(metaclass=ABCMeta):
 
     async def close(self):
         self.logger.info("Cleaning up instance")
+        await self.trigger_motion_stop()
         self.close_streams()
 
     def close_streams(self):

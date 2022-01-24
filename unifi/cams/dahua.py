@@ -5,8 +5,8 @@ from pathlib import Path
 
 from amcrest import AmcrestCamera
 from amcrest.exceptions import CommError
-
-from unifi.cams.base import SmartDetectObjectType, UnifiCamBase
+import httpx
+from unifi.cams.base import SmartDetectObjectType, UnifiCamBase, RetryableError
 
 
 class DahuaCam(UnifiCamBase):
@@ -115,15 +115,19 @@ class DahuaCam(UnifiCamBase):
                         await self.trigger_motion_start(object_type)
                     elif action == "Stop":
                         self.logger.info(f"Trigger motion end for index {index}")
-                        await self.trigger_motion_stop(object_type)
-            except CommError:
+                        await self.trigger_motion_stop()
+            except (CommError, httpx.RequestError):
                 self.logger.error("Motion API request failed, retrying")
 
-    def get_stream_source(self, stream_index: str) -> str:
+    async def get_stream_source(self, stream_index: str) -> str:
 
         if stream_index == "video1":
             subtype = self.args.main_stream
         else:
             subtype = self.args.sub_stream
-
-        return self.camera.rtsp_url(channel=self.args.channel, typeno=subtype)
+        try:
+            return await self.camera.async_rtsp_url(
+                channel=self.args.channel, typeno=subtype
+            )
+        except (CommError, httpx.RequestError):
+            raise RetryableError("Could not generate RTSP URL")

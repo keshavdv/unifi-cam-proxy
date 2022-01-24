@@ -84,7 +84,7 @@ class ReolinkNVRCam(UnifiCamBase):
             except aiohttp.ClientError as err:
                 self.logger.error(f"Motion API request failed, retrying. Error: {err}")
 
-    def get_stream_source(self, stream_index: str) -> str:
+    async def get_stream_source(self, stream_index: str) -> str:
         return (
             f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}:554"
             f"/h264Preview_{int(self.args.channel) + 1:02}_main"

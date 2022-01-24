@@ -1,12 +1,14 @@
 import argparse
+import asyncio
 import logging
 import tempfile
+import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
-import requests
+import httpx
 import xmltodict
-from hikvisionapi import Client
+from hikvisionapi import AsyncClient
 
 from unifi.cams.base import UnifiCamBase
 
@@ -16,12 +18,17 @@ class HikvisionCam(UnifiCamBase):
         super().__init__(args, logger)
         self.snapshot_dir = tempfile.mkdtemp()
         self.streams = {}
-        self.cam = Client(
-            f"http://{self.args.ip}", self.args.username, self.args.password
+        self.cam = AsyncClient(
+            f"http://{self.args.ip}",
+            self.args.username,
+            self.args.password,
+            timeout=None,
         )
         self.channel = args.channel
         self.substream = args.substream
-        self.ptz_supported = self.check_ptz_support(self.channel)
+        self.ptz_supported = False
+        self.motion_in_progress: bool = False
+        self._last_event_timestamp: Union[str, int] = 0
 
     @classmethod
     def add_parser(cls, parser: argparse.ArgumentParser) -> None:
@@ -39,29 +46,28 @@ class HikvisionCam(UnifiCamBase):
         img_file = Path(self.snapshot_dir, "screen.jpg")
         source = int(f"{self.channel}01")
         try:
-            resp = self.cam.Streaming.channels[source].picture(
-                method="get", type="opaque_data"
-            )
             with img_file.open("wb") as f:
-                for chunk in resp.iter_content(chunk_size=1024):
+                async for chunk in self.cam.Streaming.channels[source].picture(
+                    method="get", type="opaque_data"
+                ):
                     if chunk:
                         f.write(chunk)
-        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError):
+        except httpx.RequestError:
             pass
         return img_file
 
-    def check_ptz_support(self, channel) -> bool:
+    async def check_ptz_support(self, channel) -> bool:
         try:
-            self.cam.PTZCtrl.channels[channel].capabilities(method="get")
+            await self.cam.PTZCtrl.channels[channel].capabilities(method="get")
             self.logger.info("Detected PTZ support")
             return True
-        except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError):
+        except httpx.RequestError:
             pass
         return False
 
-    def get_video_settings(self) -> Dict[str, Any]:
+    async def get_video_settings(self) -> Dict[str, Any]:
         if self.ptz_supported:
-            r = self.cam.PTZCtrl.channels[1].status(method="get")["PTZStatus"][
+            r = (await self.cam.PTZCtrl.channels[1].status(method="get"))["PTZStatus"][
                 "AbsoluteHigh"
             ]
             return {
@@ -74,7 +80,7 @@ class HikvisionCam(UnifiCamBase):
             }
         return {}
 
-    def change_video_settings(self, options: Dict[str, Any]) -> None:
+    async def change_video_settings(self, options: Dict[str, Any]) -> None:
         if self.ptz_supported:
             tilt = int((900 * int(options["brightness"])) / 100)
             pan = int((3600 * int(options["contrast"])) / 100)
@@ -92,11 +98,11 @@ class HikvisionCam(UnifiCamBase):
                     },
                 }
             }
-            self.cam.PTZCtrl.channels[1].absolute(
+            await self.cam.PTZCtrl.channels[1].absolute(
                 method="put", data=xmltodict.unparse(req, pretty=True)
             )
 
-    def get_stream_source(self, stream_index: str) -> str:
+    async def get_stream_source(self, stream_index: str) -> str:
         substream = 1
         if stream_index != "video1":
             substream = self.substream
@@ -105,3 +111,31 @@ class HikvisionCam(UnifiCamBase):
             f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}:554"
             f"/Streaming/Channels/{self.channel}0{substream}/"
         )
+
+    async def maybe_end_motion_event(self, start_time):
+        await asyncio.sleep(2)
+        if self.motion_in_progress and self._last_event_timestamp == start_time:
+            await self.trigger_motion_stop()
+            self.motion_in_progress = False
+
+    async def run(self) -> None:
+        async for event in self.cam.Event.notification.alertStream(
+            method="get", type="stream"
+        ):
+            alert = event.get("EventNotificationAlert")
+            if (
+                alert
+                and alert.get("channelID") == str(self.channel)
+                and alert.get("eventType") == "VMD"
+            ):
+
+                self._last_event_timestamp = alert.get("dateTime", time.time())
+
+                if self.motion_in_progress is False:
+                    self.motion_in_progress = True
+                    await self.trigger_motion_start()
+
+                # End motion event after 2 seconds of no updates
+                asyncio.ensure_future(
+                    self.maybe_end_motion_event(self._last_event_timestamp)
+                )

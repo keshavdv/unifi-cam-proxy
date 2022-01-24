@@ -37,9 +37,9 @@ class FrigateCam(RTSPCam):
             help="Name of camera in frigate",
         )
 
-    def get_feature_flags(self) -> Dict[str, Any]:
+    async def get_feature_flags(self) -> Dict[str, Any]:
         return {
-            **super().get_feature_flags(),
+            **await super().get_feature_flags(),
             **{
                 "mic": True,
                 "smartDetect": [
@@ -121,7 +121,7 @@ class FrigateCam(RTSPCam):
                             f"Ending {self.event_label} motion event"
                             f" (id: {self.event_id})"
                         )
-                        await self.trigger_motion_stop(object_type)
+                        await self.trigger_motion_stop()
                         self.event_id = None
                         self.event_label = None
                 except json.JSONDecodeError:

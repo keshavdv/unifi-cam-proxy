@@ -6,6 +6,7 @@
     "build/"
   ],
   "ignore_all_errors": [
+    "build/",
     "venv/"
   ],
   "taint_models_path": "stubs/taint"

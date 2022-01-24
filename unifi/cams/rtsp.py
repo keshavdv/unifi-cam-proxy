@@ -103,5 +103,5 @@ class RTSPCam(UnifiCamBase):
         if self.snapshot_stream:
             self.snapshot_stream.kill()
 
-    def get_stream_source(self, stream_index: str) -> str:
+    async def get_stream_source(self, stream_index: str) -> str:
         return self.stream_source[stream_index]
