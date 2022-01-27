@@ -121,23 +121,28 @@ class HikvisionCam(UnifiCamBase):
     async def run(self) -> None:
         self.ptz_supported = await self.check_ptz_support(self.channel)
 
-        async for event in self.cam.Event.notification.alertStream(
-            method="get", type="stream"
-        ):
-            alert = event.get("EventNotificationAlert")
-            if (
-                alert
-                and alert.get("channelID") == str(self.channel)
-                and alert.get("eventType") == "VMD"
-            ):
+        while True:
+            self.logger.info("Connecting to motion events API")
+            try:
+                async for event in self.cam.Event.notification.alertStream(
+                    method="get", type="stream", timeout=None
+                ):
+                    alert = event.get("EventNotificationAlert")
+                    if (
+                        alert
+                        and alert.get("channelID") == str(self.channel)
+                        and alert.get("eventType") == "VMD"
+                    ):
 
-                self._last_event_timestamp = alert.get("dateTime", time.time())
+                        self._last_event_timestamp = alert.get("dateTime", time.time())
 
-                if self.motion_in_progress is False:
-                    self.motion_in_progress = True
-                    await self.trigger_motion_start()
+                        if self.motion_in_progress is False:
+                            self.motion_in_progress = True
+                            await self.trigger_motion_start()
 
-                # End motion event after 2 seconds of no updates
-                asyncio.ensure_future(
-                    self.maybe_end_motion_event(self._last_event_timestamp)
-                )
+                        # End motion event after 2 seconds of no updates
+                        asyncio.ensure_future(
+                            self.maybe_end_motion_event(self._last_event_timestamp)
+                        )
+            except httpx.RequestError:
+                self.logger.error("Motion API request failed, retrying")
