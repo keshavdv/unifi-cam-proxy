@@ -119,6 +119,8 @@ class HikvisionCam(UnifiCamBase):
             self.motion_in_progress = False
 
     async def run(self) -> None:
+        self.ptz_supported = await self.check_ptz_support(self.channel)
+
         async for event in self.cam.Event.notification.alertStream(
             method="get", type="stream"
         ):

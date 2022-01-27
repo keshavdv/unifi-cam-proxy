@@ -3,10 +3,11 @@ import logging
 import tempfile
 from pathlib import Path
 
+import httpx
 from amcrest import AmcrestCamera
 from amcrest.exceptions import CommError
-import httpx
-from unifi.cams.base import SmartDetectObjectType, UnifiCamBase, RetryableError
+
+from unifi.cams.base import RetryableError, SmartDetectObjectType, UnifiCamBase
 
 
 class DahuaCam(UnifiCamBase):
