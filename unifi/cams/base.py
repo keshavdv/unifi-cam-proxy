@@ -97,7 +97,7 @@ class UnifiCamBase(metaclass=ABCMeta):
     async def get_stream_source(self, stream_index: str) -> str:
         raise NotImplementedError("You need to write this!")
 
-    def get_extra_ffmpeg_args(self) -> str:
+    def get_extra_ffmpeg_args(self, stream_index: str = "") -> str:
         return self.args.ffmpeg_args
 
     async def get_feature_flags(self) -> Dict[str, Any]:
@@ -889,12 +889,13 @@ class UnifiCamBase(metaclass=ABCMeta):
 
         return False
 
-    def get_base_ffmpeg_args(self) -> str:
+    def get_base_ffmpeg_args(self, stream_index: str = "") -> str:
         base_args = [
             "-avoid_negative_ts",
             "make_zero",
             "-fflags",
             "+genpts+discardcorrupt",
+            "-use_wallclock_as_timestamps 1",
         ]
 
         try:
@@ -917,9 +918,9 @@ class UnifiCamBase(metaclass=ABCMeta):
         if not has_spawned or is_dead:
             source = await self.get_stream_source(stream_index)
             cmd = (
-                f"ffmpeg -nostdin -loglevel error -y {self.get_base_ffmpeg_args()}"
+                f"ffmpeg -nostdin -loglevel error -y {self.get_base_ffmpeg_args(stream_index)}"
                 f" -rtsp_transport {self.args.rtsp_transport}"
-                f' -i "{source}" {self.get_extra_ffmpeg_args()}'
+                f' -i "{source}" {self.get_extra_ffmpeg_args(stream_index)}'
                 f" -metadata streamname={stream_name} -f flv -"
                 f" | {sys.executable} -m unifi.clock_sync"
                 f" | nc {destination[0]} {destination[1]}"

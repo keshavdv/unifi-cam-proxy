@@ -3,9 +3,11 @@ import json
 import logging
 import tempfile
 from pathlib import Path
+from typing import Tuple
 
 import aiohttp
 from yarl import URL
+import reolinkapi
 
 from unifi.cams.base import UnifiCamBase
 
@@ -16,6 +18,12 @@ class Reolink(UnifiCamBase):
         self.snapshot_dir: str = tempfile.mkdtemp()
         self.motion_in_progress: bool = False
         self.substream = args.substream
+        self.cam = reolinkapi.Camera(
+            ip=args.ip,
+            username=args.username,
+            password=args.password,
+        )
+        self.stream_fps = self.get_stream_info(self.cam)
 
     @classmethod
     def add_parser(cls, parser: argparse.ArgumentParser) -> None:
@@ -29,14 +37,30 @@ class Reolink(UnifiCamBase):
             help="Camera channel (not needed, leaving for possible future)",
         )
 
+
         parser.add_argument(
-            "--substream",
-            "-s",
+            "--stream",
+            "-m",
             default="main",
             type=str,
             choices=["main", "sub"],
-            required=True,
-            help="Camera rtsp url substream index main, or sub",
+            help="Stream profile to use for the higher quality stream",
+        )
+
+        parser.add_argument(
+            "--substream",
+            "-s",
+            default="sub",
+            type=str,
+            choices=["main", "sub"],
+            help="Stream profile to use for the lower quality stream",
+        )
+
+    def get_stream_info(self, camera) -> Tuple[int, int]:
+        info = camera.get_recording_encoding()
+        return (
+            info[0]["value"]["Enc"]["mainStream"]["frameRate"],
+            info[0]["value"]["Enc"]["subStream"]["frameRate"],
         )
 
     async def get_snapshot(self) -> Path:
@@ -103,8 +127,24 @@ class Reolink(UnifiCamBase):
             except aiohttp.ClientError as err:
                 self.logger.error(f"Motion API request failed, retrying. Error: {err}")
 
+    def get_extra_ffmpeg_args(self, stream_index: str) -> str:
+        if stream_index == "video1":
+            fps = self.stream_fps[0]
+        else:
+            fps = self.stream_fps[1]
+        # return f'-ar 32000 -ac 1 -codec:a aac -b:a 32k -vf scale=-1:720 -flags:v +global_header -c:v libx264 -preset ultrafast -bsf:v dump_extra '
+        # return f'-ar 32000 -ac 1 -codec:a aac -b:a 32k -c:v copy -vbsf "h264_mp4toannexb"'
+        return f'-ar 32000 -ac 1 -codec:a aac -b:a 32k -c:v copy -vbsf "h264_metadata=tick_rate={fps*2}"'
+
     async def get_stream_source(self, stream_index: str) -> str:
+        if stream_index == "video1":
+            stream = self.args.stream
+        else:
+            stream = self.args.substream
+
+        # return f"rtmp://{self.args.ip}/bcs/channel0_main.bcs?channel=0&stream=0&user={self.args.username}&password={self.args.password}"
+
         return (
             f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}:554"
-            f"//h264Preview_{int(self.args.channel) + 1:02}_{self.args.substream}"
+            f"//h264Preview_{int(self.args.channel) + 1:02}_{stream}"
         )
