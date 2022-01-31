@@ -1,3 +1,5 @@
+[![unifi-cam-proxy Discord](https://img.shields.io/discord/937237037466124330?color=0559C9&label=Discord&logo=discord&logoColor=%23FFFFFF&style=for-the-badge)](https://discord.gg/Bxk9uGT6MW)
+
 UniFi Camera Proxy
 ==================
 ## About
