@@ -61,7 +61,7 @@ class HikvisionCam(UnifiCamBase):
             await self.cam.PTZCtrl.channels[channel].capabilities(method="get")
             self.logger.info("Detected PTZ support")
             return True
-        except httpx.RequestError:
+        except (httpx.RequestError, httpx.HTTPStatusError):
             pass
         return False
 
