@@ -137,7 +137,12 @@ class UnifiCamBase(metaclass=ABCMeta):
                     }
                 )
 
-            self.logger.info(f"Triggering motion start (idx: {self._motion_event_id})")
+            self.logger.info(
+                f"Triggering motion start (idx: {self._motion_event_id})"
+                + f" for {object_type.value}"
+                if object_type
+                else ""
+            )
             await self.send(
                 self.gen_response(
                     "EventSmartDetect" if object_type else "EventAnalytics",
@@ -145,6 +150,7 @@ class UnifiCamBase(metaclass=ABCMeta):
                 ),
             )
             self._motion_event_ts = time.time()
+            self._motion_object_type = object_type
 
             # Capture snapshot at beginning of motion event for thumbnail
             motion_snapshot_path: str = tempfile.NamedTemporaryFile(delete=False).name
@@ -182,7 +188,12 @@ class UnifiCamBase(metaclass=ABCMeta):
                         "smartDetectSnapshot": "motionsnap.jpg",
                     }
                 )
-            self.logger.info(f"Triggering motion stop (idx: {self._motion_event_id})")
+            self.logger.info(
+                f"Triggering motion stop (idx: {self._motion_event_id})"
+                + f" for {motion_object_type.value}"
+                if motion_object_type
+                else ""
+            )
             await self.send(
                 self.gen_response(
                     "EventSmartDetect" if motion_object_type else "EventAnalytics",
