@@ -13,13 +13,11 @@ If your camera model is not listed specifically below, try the following:
 
 
 ```
-unifi-cam-proxy  -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token>  \
+unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> \
   frigate \
   -s <rtsp source> \
   --mqtt-host <mqtt host> \
   --frigate-camera <Name of camera in frigate>
-
-
 ```
 
 ## Options
