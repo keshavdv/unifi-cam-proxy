@@ -27,6 +27,8 @@ class FrigateCam(RTSPCam):
         super().add_parser(parser)
         parser.add_argument("--mqtt-host", required=True, help="MQTT server")
         parser.add_argument("--mqtt-port", default=1883, type=int, help="MQTT server")
+        parser.add_argument("--mqtt-username", required=False)
+        parser.add_argument("--mqtt-password", required=False)
         parser.add_argument(
             "--mqtt-prefix", default="frigate", type=str, help="Topic prefix"
         )
@@ -64,7 +66,7 @@ class FrigateCam(RTSPCam):
             nonlocal has_connected
             try:
                 async with Client(
-                    self.args.mqtt_host, port=self.args.mqtt_port
+                    self.args.mqtt_host, port=self.args.mqtt_port, username=self.args.mqtt_username, password=self.args.mqtt_password
                 ) as client:
                     has_connected = True
                     self.logger.info(
