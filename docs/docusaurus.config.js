@@ -61,7 +61,7 @@ const config = {
             items: [
               {
                 label: 'GitHub',
-                href: 'https://github.com/keshvadv/unifi-cam-proxy',
+                href: 'https://github.com/keshavdv/unifi-cam-proxy',
               },
             ],
           },
