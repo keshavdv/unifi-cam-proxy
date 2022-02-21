@@ -8,3 +8,5 @@ run/
 MANIFEST
 MANIFEST.in
 .pyre/
+.vscode/settings.json
+.vscode/launch.json
