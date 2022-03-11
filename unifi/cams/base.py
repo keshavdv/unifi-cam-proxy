@@ -210,6 +210,9 @@ class UnifiCamBase(metaclass=ABCMeta):
     async def fetch_to_file(self, url: str, dst: Path) -> bool:
         try:
             async with aiohttp.request("GET", url) as resp:
+                if resp.status != 200:
+                    self.logger.error(f"Error retrieving file {resp.status}")
+                    return False
                 with dst.open("wb") as f:
                     f.write(await resp.read())
                     return True
