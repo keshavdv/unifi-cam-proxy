@@ -66,7 +66,10 @@ class FrigateCam(RTSPCam):
             nonlocal has_connected
             try:
                 async with Client(
-                    self.args.mqtt_host, port=self.args.mqtt_port, username=self.args.mqtt_username, password=self.args.mqtt_password
+                    self.args.mqtt_host,
+                    port=self.args.mqtt_port,
+                    username=self.args.mqtt_username,
+                    password=self.args.mqtt_password,
                 ) as client:
                     has_connected = True
                     self.logger.info(
