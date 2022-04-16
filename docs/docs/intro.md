@@ -43,7 +43,7 @@ services:
     image: keshavdv/unifi-cam-proxy
     volumes:
       - "./client.pem:/client.pem"
-    command: unifi-cam-proxy --host {NVR IP} --cert /client.pem --token {Adoption token} rtsp -s rtsp://192.168.201.15:8554/cam'
+    command: unifi-cam-proxy --host {NVR IP} --cert /client.pem --token {Adoption token} rtsp -s rtsp://{Desired Outgoing IP}:8554/cam'
 ```
 
 ### Multiple cameras
@@ -57,13 +57,13 @@ services:
     image: keshavdv/unifi-cam-proxy
     volumes:
       - "./client.pem:/client.pem"
-    command: unifi-cam-proxy --host {NVR IP} --mac 'AA:BB:CC:00:11:22' --cert /client.pem --token {Adoption token} rtsp -s rtsp://192.168.201.15:8554/cam'
+    command: unifi-cam-proxy --host {NVR IP} --mac 'AA:BB:CC:00:11:22' --cert /client.pem --token {Adoption token} rtsp -s rtsp://{Desired Outgoing IP}:8554/cam'
   proxy-2:
     restart: unless-stopped
     image: keshavdv/unifi-cam-proxy
     volumes:
       - "./client.pem:/client.pem"
-    command: unifi-cam-proxy --host {NVR IP} --mac 'AA:BB:CC:33:44:55' --cert /client.pem --token {Adoption token} rtsp -s rtsp://192.168.201.15:8554/cam'
+    command: unifi-cam-proxy --host {NVR IP} --mac 'AA:BB:CC:33:44:55' --cert /client.pem --token {Adoption token} rtsp -s rtsp://{Desired Outgoing IP}:8554/cam'
 ```
 
 
@@ -75,5 +75,5 @@ If you cannot use Docker, you may install the proxy on most Linux distros, but s
 ```
 apt install ffmpeg netcat python3 python3-pip
 pip3 install unifi-cam-proxy
-unifi-cam-proxy --host 192.168.201.179 --cert /client.pem --token {Adoption token} rtsp -s rtsp://192.168.201.15:8554/cam'
+unifi-cam-proxy --host {NVR IP} --cert /client.pem --token {Adoption token} rtsp -s rtsp://{Desired Outgoing IP}:8554/cam'
 ```
