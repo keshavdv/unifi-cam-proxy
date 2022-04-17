@@ -37,7 +37,6 @@ class Reolink(UnifiCamBase):
             help="Camera channel (not needed, leaving for possible future)",
         )
 
-
         parser.add_argument(
             "--stream",
             "-m",

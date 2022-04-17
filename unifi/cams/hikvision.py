@@ -120,6 +120,7 @@ class HikvisionCam(UnifiCamBase):
 
     async def run(self) -> None:
         self.ptz_supported = await self.check_ptz_support(self.channel)
+        return
 
         while True:
             self.logger.info("Connecting to motion events API")

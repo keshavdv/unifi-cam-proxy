@@ -1,73 +1,13 @@
 """"
 Helper program to inject absolute wall clock time into FLV stream for recordings
 """
-
+import argparse
 import struct
 import sys
 import time
-
-
-def make_ui8(num):
-    return struct.pack("B", num)
-
-
-def make_ui32(num):
-    return struct.pack(">I", num)
-
-
-def make_si32_extended(num):
-    ret = struct.pack(">i", num)
-    return ret[1:] + bytes([ret[0]])
-
-
-def make_ui24(num):
-    ret = struct.pack(">I", num)
-    return ret[1:]
-
-
-def make_ui16(num):
-    return struct.pack(">H", num)
-
-
-def create_script_tag(name, data, timestamp=0):
-    payload = make_ui8(2)  # VALUE_TYPE_STRING
-
-    payload += make_string(name)
-    payload += make_ui8(3)  # VALUE_TYPE_OBJECT
-
-    for k, v in data.items():
-        payload += make_string(k)
-        payload += make_ui8(0)  # VALUE_TYPE_NUMBER
-        payload += make_number(v)
-    payload += make_ui24(9)  # End of object
-
-    tag_type = make_ui8(18)  # 18 = TAG_TYPE_SCRIPT
-    timestamp = make_si32_extended(timestamp)
-    stream_id = make_ui24(0)
-
-    data_size = len(payload)
-    tag_size = data_size + 11
-
-    return b"".join(
-        [
-            tag_type,
-            make_ui24(data_size),
-            timestamp,
-            stream_id,
-            payload,
-            make_ui32(tag_size),
-        ]
-    )
-
-
-def make_string(string):
-    s = string.encode("UTF-8")
-    length = make_ui16(len(s))
-    return length + string.encode("UTF-8")
-
-
-def make_number(num):
-    return struct.pack(">d", num)
+from flvlib3.astypes import FLVObject
+from flvlib3.tags import create_script_tag
+from flvlib3.primitives import make_ui8, make_ui32
 
 
 def read_bytes(source, num_bytes):
@@ -87,12 +27,22 @@ def write(data):
     sys.stdout.buffer.write(data)
 
 
-def main():
-    if sys.platform == "win32":
-        import msvcrt
-        import os
+def write_log(data):
+    sys.stderr.buffer.write(f"{data}\n".encode())
 
-        msvcrt.setmode(sys.stdin.fileno(), os.O_BINARY)
+
+def write_timestamp_trailer(is_packet, ts):
+    # Write 15 byte trailer
+    write(make_ui8(0))
+    if is_packet:
+        write(bytes([1, 95, 144, 0, 0, 0, 0, 0, 0, 0, 0]))
+    else:
+        write(bytes([0, 43, 17, 0, 0, 0, 0, 0, 0, 0, 0]))
+
+    write(make_ui32(int(ts * 1000 * 100)))
+
+
+def main(args):
     source = sys.stdin.buffer
 
     header = read_bytes(source, 3)
@@ -103,14 +53,24 @@ def main():
     write(header)
 
     # Skip rest of FLV header
-    write(read_bytes(source, 6))
+    write(read_bytes(source, 1))
+    read_bytes(source, 1)
+    # Write custom bitmask for FLV type
+    write(make_ui8(7))
+    write(read_bytes(source, 4))
 
+    # Tag 0 previous size
+    write(read_bytes(source, 4))
+
+    last_ts = time.time()
+    start = time.time()
     i = 0
     while True:
 
         # Packet structure from Wikipedia:
         #
         # Size of previous packet	uint32_be	0	For first packet set to NULL
+        #
         # Packet Type	uint8	18	For first packet set to AMF Metadata
         # Payload Size	uint24_be	varies	Size of packet data only
         # Timestamp Lower	uint24_be	0	For first packet set to NULL
@@ -119,49 +79,101 @@ def main():
         #
         # Payload Data	freeform	varies	Data as defined by packet type
 
-        header = read_bytes(source, 15)
-        if len(header) != 15:
+        header = read_bytes(source, 12)
+        if len(header) != 12:
             write(header)
             return
 
+        # Packet type
+        packet_type = header[0]
+
         # Get payload size to know how many bytes to read
-        high, low = struct.unpack(">BH", header[5:8])
+        high, low = struct.unpack(">BH", header[1:4])
         payload_size = (high << 16) + low
 
         # Get timestamp to inject into clock sync tag
-        low_high = header[8:12]
+        low_high = header[4:8]
         combined = bytes([low_high[3]]) + low_high[:3]
         timestamp = struct.unpack(">i", combined)[0]
 
-        if i % 3:
+        now = time.time()
+        if not last_ts or now - last_ts >= 5:
+            last_ts = now
             # Insert a custom packet every so often for time synchronization
+            data = FLVObject()
+            data["streamClock"] = int(timestamp)
+            data["streamClockBase"] = 0
+            data["wallClock"] = now * 1000
+            packet_to_inject = create_script_tag("onClockSync", data, timestamp)
+            write(packet_to_inject)
 
-            # Reference based on flvlib:
-            #   data = flv.libastypes.FLVObject()
-            #   data["streamClock"] = int(timestamp)
-            #   data["streamClockBase"] = 0
-            #   data["wallClock"] = time.time() * 1000
-            #   packet_to_inject = flvlib.tags.create_script_tag(
-            #       "onClockSync", data, timestamp))
+            # Write 15 byte trailer
+            write_timestamp_trailer(False, now - start)
 
-            data = {
-                "streamClock": int(timestamp),
-                "streamClockBase": 0,
-                "wallClock": time.time() * 1000,
-            }
-            write(make_ui32(payload_size + 15))  # Write previous packet size
-            write(create_script_tag("onClockSync", data, timestamp))
+            # Write mpma tag
+            # {'cs': {'cur': 1500000.0,
+            #         'max': 1500000.0,
+            #         'min': 32000.0},
+            #  'm': {'cur': 750000.0,
+            #        'max': 1500000.0,
+            #        'min': 750000.0},
+            #  'r': 0.0,
+            #  'sp': {'cur': 1500000.0,
+            #         'max': 1500000.0,
+            #         'min': 150000.0},
+            #  't': 750000.0}
+
+            data = FLVObject()
+            data["cs"] = FLVObject()
+            data["cs"]["cur"] = 1500000
+            data["cs"]["max"] = 1500000
+            data["cs"]["min"] = 1500000
+
+            data["m"] = FLVObject()
+            data["m"]["cur"] = 1500000
+            data["m"]["max"] = 1500000
+            data["m"]["min"] = 1500000
+            data["r"] = 0
+
+            data["sp"] = FLVObject()
+            data["sp"]["cur"] = 1500000
+            data["sp"]["max"] = 1500000
+            data["sp"]["min"] = 1500000
+            data["t"] = 75000.0
+            packet_to_inject = create_script_tag("onMpma", data, 0)
+
+            write(packet_to_inject)
+
+            # Write 15 byte trailer
+            write_timestamp_trailer(False, now - start)
 
             # Write rest of original packet minus previous packet size
-            write(header[4:])
+            write(header)
             write(read_bytes(source, payload_size))
         else:
             # Write the original packet
             write(header)
             write(read_bytes(source, payload_size))
 
+        # Write previous packet size
+        write(read_bytes(source, 3))
+
+        # Write 15 byte trailer
+        write_timestamp_trailer(packet_type == 9, now - start)
+
+        # Write mpma tag
         i += 1
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Modify Protect FLV stream")
+    parser.add_argument(
+        "--write-timestamps",
+        action="store_true",
+        help="Indicates we should write timestamp in between packets",
+    )
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    main()
+    main(parse_args())
