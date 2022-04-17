@@ -13,10 +13,11 @@ from abc import ABCMeta, abstractmethod
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
+from pkg_resources import packaging
+
 
 import aiohttp
 import websockets
-
 from unifi.core import RetryableError
 
 AVClientRequest = AVClientResponse = Dict[str, Any]
@@ -48,6 +49,8 @@ class UnifiCamBase(metaclass=ABCMeta):
         self._ssl_context.load_cert_chain(args.cert, args.cert)
         self._session: Optional[websockets.legacy.client.WebSocketClientProtocol] = None
         atexit.register(self.close_streams)
+
+        self._needs_flv_timestamps: bool = False
 
     @classmethod
     def add_parser(cls, parser: argparse.ArgumentParser) -> None:
@@ -251,6 +254,14 @@ class UnifiCamBase(metaclass=ABCMeta):
                     "features": await self.get_feature_flags(),
                 },
             ),
+        )
+
+    async def process_hello(self, msg: AVClientRequest) -> None:
+        controller_version = packaging.version.parse(
+            msg["payload"].get("controllerVersion")
+        )
+        self._needs_flv_timestamps = controller_version >= packaging.version.parse(
+            "1.21.4"
         )
 
     async def process_param_agreement(self, msg: AVClientRequest) -> AVClientResponse:
@@ -829,18 +840,15 @@ class UnifiCamBase(metaclass=ABCMeta):
         self.logger.info(f"Processing [{fn}] message")
         self.logger.debug(f"Message contents: {m}")
 
-        if (
-            ("responseExpected" not in m)
-            or (m["responseExpected"] is False)
-            and (
-                fn
-                not in [
-                    "GetRequest",
-                    "ChangeVideoSettings",
-                    "UpdateFirmwareRequest",
-                    "Reboot",
-                ]
-            )
+        if (("responseExpected" not in m) or (m["responseExpected"] is False)) and (
+            fn
+            not in [
+                "GetRequest",
+                "ChangeVideoSettings",
+                "UpdateFirmwareRequest",
+                "Reboot",
+                "ubnt_avclient_hello",
+            ]
         ):
             return False
 
@@ -848,6 +856,8 @@ class UnifiCamBase(metaclass=ABCMeta):
 
         if fn == "ubnt_avclient_time":
             res = await self.process_time(m)
+        elif fn == "ubnt_avclient_hello":
+            await self.process_hello(m)
         elif fn == "ubnt_avclient_paramAgreement":
             res = await self.process_param_agreement(m)
         elif fn == "ResetIspSettings":
@@ -915,14 +925,16 @@ class UnifiCamBase(metaclass=ABCMeta):
         has_spawned = stream_index in self._ffmpeg_handles
         is_dead = has_spawned and self._ffmpeg_handles[stream_index].poll() is not None
 
+        stream_i = int(stream_index[-1]) - 1
+        # if stream_index == 'video1' and not has_spawned or is_dead:
         if not has_spawned or is_dead:
             source = await self.get_stream_source(stream_index)
             cmd = (
                 f"ffmpeg -nostdin -loglevel error -y {self.get_base_ffmpeg_args(stream_index)}"
                 f" -rtsp_transport {self.args.rtsp_transport}"
                 f' -i "{source}" {self.get_extra_ffmpeg_args(stream_index)}'
-                f" -metadata streamname={stream_name} -f flv -"
-                f" | {sys.executable} -m unifi.clock_sync"
+                f" -metadata streamName={stream_name} -f flv -"
+                f" | {sys.executable} -m unifi.clock_sync {'--write-timestamps' if self._needs_flv_timestamps else ''}"
                 f" | nc {destination[0]} {destination[1]}"
             )
 
