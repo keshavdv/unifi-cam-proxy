@@ -32,5 +32,5 @@ optional arguments:
 - Notes:
   * Change Pan/Tilt/Zoom via brightness/saturation/hue camera setting
 ```
-unifi-cam-proxy -H {NVR IP} -i {camera IP} -c /client.pem -t {Adoption token} hikvision -u {username} -p {password}
+unifi-cam-proxy --mac '{unique MAC}' -H {NVR IP} -i {camera IP} -c /client.pem -t {Adoption token} hikvision -u {username} -p {password}
 ```
