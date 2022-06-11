@@ -49,8 +49,10 @@ services:
 ### Multiple cameras
 To use multiple cameras, start an instance of the proxy for each, with a unique MAC address argument. Using docker-compose, your setup might look like the following: 
 
+*** Note: This conforms to MAC randomization rules, so should not cause issues with real devices. See here for more details: https://www.mist.com/get-to-know-mac-address-randomization-in-2020/ ***
+
 ```
-version: "3.9"
+version: "3.5"
 services:
   proxy-1:
     restart: unless-stopped
@@ -75,5 +77,5 @@ If you cannot use Docker, you may install the proxy on most Linux distros, but s
 ```
 apt install ffmpeg netcat python3 python3-pip
 pip3 install unifi-cam-proxy
-unifi-cam-proxy --host 192.168.201.179 --cert /client.pem --token {Adoption token} rtsp -s rtsp://192.168.201.15:8554/cam'
+unifi-cam-proxy --host {NVR IP} --cert /client.pem --token {Adoption token} rtsp -s rtsp://192.168.201.15:8554/cam'
 ```
