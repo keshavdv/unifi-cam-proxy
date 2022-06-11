@@ -8,7 +8,7 @@ sidebar_position: 3
 If your camera model is not listed specifically below, try the following:
 
 ```
-unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> hikvision -u <username> -p <password>
+unifi-cam-proxy -H <NVR IP> -i <camera IP> -c /client.pem -t <Adoption token> hikvision -u <username> -p <password>
 ```
 
 ### Options
@@ -32,5 +32,5 @@ optional arguments:
 - Notes:
   * Change Pan/Tilt/Zoom via brightness/saturation/hue camera setting
 ```
-unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> hikvision -u <username> -p <password>
+unifi-cam-proxy -H <NVR IP> -i <camera IP> -c /client.pem -t <Adoption token> hikvision -u <username> -p <password>
 ```

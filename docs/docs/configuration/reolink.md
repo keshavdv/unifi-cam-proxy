@@ -8,7 +8,7 @@ sidebar_position: 4
 If your camera model is not listed specifically below, try the following:
 
 ```
-unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> \
+unifi-cam-proxy -H <NVR IP> -i <camera IP> -c /client.pem -t <Adoption token> \
     reolink \
     -u {username} \
     -p {password} \
@@ -40,7 +40,7 @@ optional arguments:
   *  When using the 'sub' substream, use `tick_rate=30000/1001` because the stream is limited to a maximum of 15fps
 
 ```
-unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> \
+unifi-cam-proxy -H <NVR IP> -i <camera IP> -c /client.pem -t <Adoption token> \
     reolink \
     -u {username} \
     -p {password} \
