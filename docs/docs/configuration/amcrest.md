@@ -41,10 +41,10 @@ optional arguments:
     * The `-bsf:v` parameter is needed to make live video work. The first `tick_rate` value should be `fps * 2000`. See [this comment](https://github.com/keshavdv/unifi-cam-proxy/issues/31#issuecomment-841914363).
 
 ```
-unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> \
+unifi-cam-proxy --mac '{unique MAC}' -H {NVR IP} -i {camera IP} -c /client.pem -t {Adoption token} \
     amcrest \
-    -u <username> \
-    -p <password> \
+    -u {username} \
+    -p {password} \
     --motion-index 0 \
     --snapshot-channel 1 \
     --ffmpeg-args='-c:a copy -c:v copy -bsf:v "h264_metadata=tick_rate=30000/1001"'

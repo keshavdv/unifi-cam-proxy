@@ -35,9 +35,9 @@ optional arguments:
 - [x] Supports motion events
 - [ ] Supports smart detection
 ```
-unifi-cam-proxy -H <NVR IP> -i <camera IP> -c client.pem -t <Adoption token> \
+unifi-cam-proxy --mac '{unique MAC}' -H {NVR IP} -i {camera IP} -c /client.pem -t {Adoption token} \
     dahua \
-    -u <username> \
-    -p <password> \
+    -u {username} \
+    -p {password} \
     --ffmpeg-args="-f lavfi -i anullsrc -c:v copy -ar 32000 -ac 1 -codec:a aac -b:a 32k"
 ```
