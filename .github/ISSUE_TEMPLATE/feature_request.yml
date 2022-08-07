@@ -1,0 +1,56 @@
+name: Feature request
+description: Suggest an idea to help us improve.
+labels: 
+  - "Type: Feature request"
+  - "Status: waiting feedback"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # :warning: **Please read before raising the issue** :warning:
+
+        If you have a **question**, need clarification on something, need help on a particular situation or want to start a discussion, **DO NOT** open an issue here. _It will be automatically closed!_ 
+        
+        Ask the question on one of our [Discord channels](https://discord.gg/Bxk9uGT6MW).
+        If you're not keen to Discord, you can also use [GitHub Discussions](https://github.com/keshavdv/unifi-cam-proxy/discussions).
+
+        If you realy want to raise an issue, please make sure to follow the template and provide the required information. Failing to do so will most likely end up on the issue being close. Don't take offense at this. It is simply a time management decision. Whenever an issue is raised without following the template and the required information is not provided, very often too much time has to be spent going back and forth to obtain the details that are outlined below.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Is your feature request related to a problem? Please describe.
+      placeholder: A clear and concise description of what the problem is. E.g. I'm always frustrated when [...]
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: How to solve the problem
+      description: Describe the solution you'd like
+      placeholder: A clear and concise description of what you would like to happen/exist.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Describe alternatives you've considered
+      description: What alternatives you've considered and/or tested.
+      placeholder: A clear and concise description of any alternative solutions, features or tools that you've considered.
+    validations:
+      required: false
+
+  - type: textarea
+    id: other_context
+    attributes:
+      label: Additional context
+      description: Add any other context or screenshots about the feature request here.
+      placeholder: |
+        code snnipets
+        screenshots
+        mockups
+    validations:
+      required: false

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+    - name: unifi-cam-proxy Discord Community
+      url: https://discord.gg/Bxk9uGT6MW
+      about: Please join for QUESTIONS, conversations or discussions.
+    - name: GitHub Discussions
+      url: https://github.com/keshavdv/unifi-cam-proxy/discussions
+      about: Alternative channel for asking QUESTIONS.

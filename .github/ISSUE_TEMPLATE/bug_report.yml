@@ -1,0 +1,89 @@
+name: Bug report
+description: Create a bug report to help us improve
+labels: 
+  - "Type: Bug"
+  - "Status: Waiting triage"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # :warning: **Please read before raising the issue** :warning:
+
+        If you have a **question**, need clarification on something, need help on a particular situation or want to start a discussion, **DO NOT** open an issue here. _It will be automatically closed!_ 
+        
+        Ask the question on one of our [Discord channels](https://discord.gg/Bxk9uGT6MW) 
+        If you're not keen to Discord, you can also use [GitHub Discussions](https://github.com/keshavdv/unifi-cam-proxy/discussions).
+        If you realy want to raise an issue, please make sure to follow the template and provide the required information. Failing to do so will most likely end up on the issue being close. Don't take offense at this. It is simply a time management decision. Whenever an issue is raised without following the template and the required information is not provided, very often too much time has to be spent going back and forth to obtain the details that are outlined below.
+
+  - type: input
+    id: camera_model
+    attributes:
+      label: Camera
+      description: The make/model/hardware revision of the camera you are attempting to use.
+      placeholder: camera model
+    validations:
+      required: false
+
+  - type: input
+    id: fw_version
+    attributes:
+      label: Firmware version of the camera
+      description: What's the firmware version where you're seeing this happening. If applicable.
+      placeholder: ex. 1.2.3.456, N/A
+    validations:
+      required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of what the problem is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro_steps
+    attributes:
+      label: How to reproduce
+      description: Detailed repro steps so we can see the same problem. If not already explained above.
+      placeholder: |
+        1.
+        2.
+        ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected_behaviour
+    attributes:
+      label: Expected behaviour
+      description: A clear and concise description of what you expected to happen. If applicable.
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Very helpful if you send along a few screenshots to help visualize the issue!
+      placeholder: drag and drop here, if applicable
+    validations:
+      required: false
+
+  - type: textarea
+    id: other_things
+    attributes:
+      label: Aditional information
+      description: Other suggested things. If applicable/relevant.
+      placeholder: |
+        for example link to the repository with sample code
+        code snippets
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ### Make an effort to fix the bug
+        
+        Attempt to submit a [Pull Request (PR)](https://help.github.com/articles/about-pull-requests/) that fixes the bug. Include in this PR a test that verifies the fix. If you were not able to fix the bug, a PR that illustrates your partial progress will suffice.
