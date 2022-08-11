@@ -3,6 +3,7 @@ import asyncio
 import logging
 import sys
 from shutil import which
+from pyunifiprotect import ProtectApiClient
 
 import coloredlogs
 
@@ -33,6 +34,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--host", "-H", required=True, help="NVR ip address and port")
+    parser.add_argument("--nvr-username", required=False, help="NVR username")
+    parser.add_argument("--nvr-password", required=False, help="NVR password")
     parser.add_argument(
         "--cert",
         "-c",
@@ -40,7 +43,7 @@ def parse_args():
         default="client.pem",
         help="Client certificate path",
     )
-    parser.add_argument("--token", "-t", required=True, help="Adoption token")
+    parser.add_argument("--token", "-t", required=False, default=None, help="Adoption token")
     parser.add_argument("--mac", "-m", default="AABBCCDDEEFF", help="MAC address")
     parser.add_argument(
         "--ip",
@@ -93,7 +96,20 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
+async def generate_token(args, logger):
+    try:
+        protect = ProtectApiClient(args.host, 443, args.nvr_username, args.nvr_password, verify_ssl=False)
+        await protect.update()
+        response = await protect.api_request("cameras/manage-payload")
+        return response['mgmt']['token']
+    except Exception:
+        logger.warn("Could not automatically fetch token, please see docs at https://unifi-cam-proxy.com/")
+        return None
+    finally:
+        await protect.close_session()
+
+
+async def run():
     args = parse_args()
     klass = CAMS[args.impl]
 
@@ -113,11 +129,22 @@ def main():
             logger.error(f"{binary} is not installed")
             sys.exit(1)
 
+    if not args.token:
+        args.token = await generate_token(args, logger)
+
+    if not args.token:
+        logger.error("A valid token is required")
+        sys.exit(1)
+
     cam = klass(args, logger)
     c = Core(args, cam, core_logger)
+    await c.run()
+
+
+def main():
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(c.run())
+    loop.run_until_complete(run())
 
 
 if __name__ == "__main__":
-    main()
+   main()
