@@ -772,8 +772,10 @@ class UnifiCamBase(metaclass=ABCMeta):
         self, msg: AVClientRequest
     ) -> Optional[AVClientResponse]:
         snapshot_type = msg["payload"]["what"]
+        purge_snapshot = False
         if snapshot_type in ["motionSnapshot", "smartDetectZoneSnapshot"]:
             path = self._motion_snapshot
+            purge_snapshot = True
         else:
             path = await self.get_snapshot()
 
@@ -794,6 +796,9 @@ class UnifiCamBase(metaclass=ABCMeta):
             self.logger.warning(
                 f"Snapshot file {path} is not ready yet, skipping upload"
             )
+
+        if purge_snapshot:
+            path.unlink()
 
         if msg["responseExpected"]:
             return self.gen_response("GetRequest", response_to=msg["messageId"])
