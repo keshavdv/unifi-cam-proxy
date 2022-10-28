@@ -3,9 +3,9 @@ import asyncio
 import logging
 import sys
 from shutil import which
-from pyunifiprotect import ProtectApiClient
 
 import coloredlogs
+from pyunifiprotect import ProtectApiClient
 
 from unifi.cams import (
     DahuaCam,
@@ -43,7 +43,9 @@ def parse_args():
         default="client.pem",
         help="Client certificate path",
     )
-    parser.add_argument("--token", "-t", required=False, default=None, help="Adoption token")
+    parser.add_argument(
+        "--token", "-t", required=False, default=None, help="Adoption token"
+    )
     parser.add_argument("--mac", "-m", default="AABBCCDDEEFF", help="MAC address")
     parser.add_argument(
         "--ip",
@@ -98,12 +100,16 @@ def parse_args():
 
 async def generate_token(args, logger):
     try:
-        protect = ProtectApiClient(args.host, 443, args.nvr_username, args.nvr_password, verify_ssl=False)
+        protect = ProtectApiClient(
+            args.host, 443, args.nvr_username, args.nvr_password, verify_ssl=False
+        )
         await protect.update()
         response = await protect.api_request("cameras/manage-payload")
-        return response['mgmt']['token']
+        return response["mgmt"]["token"]
     except Exception:
-        logger.warn("Could not automatically fetch token, please see docs at https://unifi-cam-proxy.com/")
+        logger.warn(
+            "Could not automatically fetch token, please see docs at https://unifi-cam-proxy.com/"
+        )
         return None
     finally:
         await protect.close_session()
@@ -147,4 +153,4 @@ def main():
 
 
 if __name__ == "__main__":
-   main()
+    main()

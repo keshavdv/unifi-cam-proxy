@@ -13,11 +13,11 @@ from abc import ABCMeta, abstractmethod
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
-from pkg_resources import packaging
-
 
 import aiohttp
 import websockets
+from pkg_resources import packaging
+
 from unifi.core import RetryableError
 
 AVClientRequest = AVClientResponse = Dict[str, Any]
@@ -160,7 +160,7 @@ class UnifiCamBase(metaclass=ABCMeta):
             try:
                 shutil.copyfile(await self.get_snapshot(), motion_snapshot_path)
                 self.logger.debug(f"Captured motion snapshot to {motion_snapshot_path}")
-                self._motion_snapshot = Path(motion_snapshot_path)
+                self.update_motion_snapshot(Path(motion_snapshot_path))
             except FileNotFoundError:
                 pass
 
@@ -925,16 +925,16 @@ class UnifiCamBase(metaclass=ABCMeta):
         has_spawned = stream_index in self._ffmpeg_handles
         is_dead = has_spawned and self._ffmpeg_handles[stream_index].poll() is not None
 
-        stream_i = int(stream_index[-1]) - 1
-        # if stream_index == 'video1' and not has_spawned or is_dead:
         if not has_spawned or is_dead:
             source = await self.get_stream_source(stream_index)
             cmd = (
-                f"ffmpeg -nostdin -loglevel error -y {self.get_base_ffmpeg_args(stream_index)}"
+                f"ffmpeg -nostdin -loglevel error -y"
+                f" {self.get_base_ffmpeg_args(stream_index)}"
                 f" -rtsp_transport {self.args.rtsp_transport}"
                 f' -i "{source}" {self.get_extra_ffmpeg_args(stream_index)}'
                 f" -metadata streamName={stream_name} -f flv -"
-                f" | {sys.executable} -m unifi.clock_sync {'--write-timestamps' if self._needs_flv_timestamps else ''}"
+                f" | {sys.executable} -m unifi.clock_sync"
+                f" {'--write-timestamps' if self._needs_flv_timestamps else ''}"
                 f" | nc {destination[0]} {destination[1]}"
             )
 

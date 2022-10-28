@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import Tuple
 
 import aiohttp
-from yarl import URL
 import reolinkapi
+from yarl import URL
 
 from unifi.cams.base import UnifiCamBase
 
