@@ -29,6 +29,7 @@ In order to add a camera to Protect, you must first generate an adoption token. 
 
 1. On the Protect UI, click 'Add Devices' and select 'G3 Micro'. Select 'Continue on Web' and type in a random string for the SSID and Password fields and click 'Generate QR Code'.
    * If you do not see this button, manually go to https://{NVR IP}/protect/devices/add (notice the "/devices/add")
+   * Per a discussion post, try this URL: https://{NVR IP}/proxy/protect/api/cameras/qr
 2. Take a screenshot of the QR code and upload it to https://zxing.org/w/decode.jspx
 3. Decode the QR code and extract the token from the second to last line in the 'Raw Text' field.
 
