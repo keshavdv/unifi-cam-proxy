@@ -1,12 +1,12 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 
 [project]
 name = "unifi-cam-proxy"
 description = "Enable non-Ubiquiti cameras to work with Unifi NVR"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 authors = [
     { name = "Keshav Varma", email = "keshavdv@gmail.com" },
 ]
@@ -28,7 +28,6 @@ dependencies = [
 ]
 classifiers = [
     "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -39,7 +38,7 @@ classifiers = [
 "Homepage" = "https://github.com/keshavdv/unifi-cam-proxy"
 "Bug Tracker" = "https://github.com/keshavdv/unifi-cam-proxy/issues"
 "Source Code" = "https://github.com/keshavdv/unifi-cam-proxy"
-# @TODO: DOCS LINK
+"Documentation" = "https://unifi-cam-proxy.com/"
 
 
 [project.optional-dependencies]
@@ -49,7 +48,8 @@ test = [
     "flake8",
     "flake8-bugbear",
     "pyre-check",
-    "pytest"
+    "pytest",
+    "wheel"
 ]
 all = ["unifi-cam-proxy[test]"]
 

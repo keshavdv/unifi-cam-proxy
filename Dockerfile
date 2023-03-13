@@ -1,4 +1,4 @@
-FROM python:3.8-alpine3.10
+FROM python:3.9-alpine3.10
 WORKDIR /app
 
 RUN apk add --update gcc libc-dev linux-headers libusb-dev
