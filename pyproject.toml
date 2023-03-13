@@ -2,6 +2,71 @@
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
+
+[project]
+name = "unifi-cam-proxy"
+description = "Enable non-Ubiquiti cameras to work with Unifi NVR"
+requires-python = ">=3.8"
+authors = [
+    { name = "Keshav Varma", email = "keshavdv@gmail.com" },
+]
+license = { text = "MIT" }
+dynamic = ["version", "readme"]
+dependencies = [
+    "amcrest",
+    "aiohttp",
+    "reolinkapi",
+    "packaging",
+    "asyncio-mqtt",
+    "backoff",
+    "coloredlogs",
+    "hikvisionapi>=0.3.2",
+    "websockets>=9.0.1",
+    "xmltodict",
+    "pyunifiprotect",
+    "flvlib3@git+https://github.com/zkonge/flvlib3.git",
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+
+[project.urls]
+"Homepage" = "https://github.com/keshavdv/unifi-cam-proxy"
+"Bug Tracker" = "https://github.com/keshavdv/unifi-cam-proxy/issues"
+"Source Code" = "https://github.com/keshavdv/unifi-cam-proxy"
+# @TODO: DOCS LINK
+
+
+[project.optional-dependencies]
+test = [
+    "black",
+    "isort",
+    "flake8",
+    "flake8-bugbear",
+    "pyre-check",
+    "pytest"
+]
+all = ["unifi-cam-proxy[test]"]
+
+
+[project.scripts]
+unifi-cam-proxy = "unifi.main:main"
+
+
+[tool.setuptools]
+package-dir = { "unifi" = "unifi" }
+
+
+[tool.setuptools.dynamic]
+version = { attr = "unifi.version.__version__" }
+readme = { file = ["README.md"] }
+
+
 [tool.isort]
 multi_line_output = 3
 include_trailing_comma = true
