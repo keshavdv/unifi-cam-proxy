@@ -4,7 +4,7 @@ import json
 import logging
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import backoff
 from asyncio_mqtt import Client
@@ -39,7 +39,7 @@ class FrigateCam(RTSPCam):
             help="Name of camera in frigate",
         )
 
-    async def get_feature_flags(self) -> Dict[str, Any]:
+    async def get_feature_flags(self) -> dict[str, Any]:
         return {
             **await super().get_feature_flags(),
             **{

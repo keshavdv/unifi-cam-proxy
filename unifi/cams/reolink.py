@@ -3,7 +3,6 @@ import json
 import logging
 import tempfile
 from pathlib import Path
-from typing import Tuple
 
 import aiohttp
 from yarl import URL
@@ -55,7 +54,7 @@ class Reolink(UnifiCamBase):
             help="Stream profile to use for the lower quality stream",
         )
 
-    def get_stream_info(self, camera) -> Tuple[int, int]:
+    def get_stream_info(self, camera) -> tuple[int, int]:
         info = camera.get_recording_encoding()
         return (
             info[0]["value"]["Enc"]["mainStream"]["frameRate"],

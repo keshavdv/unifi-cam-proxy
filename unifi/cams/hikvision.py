@@ -4,7 +4,7 @@ import logging
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Any, Union
 
 import httpx
 import xmltodict
@@ -65,7 +65,7 @@ class HikvisionCam(UnifiCamBase):
             pass
         return False
 
-    async def get_video_settings(self) -> Dict[str, Any]:
+    async def get_video_settings(self) -> dict[str, Any]:
         if self.ptz_supported:
             r = (await self.cam.PTZCtrl.channels[1].status(method="get"))["PTZStatus"][
                 "AbsoluteHigh"
@@ -80,7 +80,7 @@ class HikvisionCam(UnifiCamBase):
             }
         return {}
 
-    async def change_video_settings(self, options: Dict[str, Any]) -> None:
+    async def change_video_settings(self, options: dict[str, Any]) -> None:
         if self.ptz_supported:
             tilt = int((900 * int(options["brightness"])) / 100)
             pan = int((3600 * int(options["contrast"])) / 100)
