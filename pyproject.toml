@@ -76,8 +76,10 @@ readme = { file = ["README.md"] }
 universal = true
 
 
-[tool.flake8]
-max-line-length = 80
-select = "C,E,F,W,B,B950"
-ignore = ["E203", "E501", "W503"]
-exclude = ".git,__pycache__,venv,build,dist"
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 80
