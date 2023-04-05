@@ -12,7 +12,7 @@ import urllib
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional
 from pkg_resources import packaging
 
 
@@ -20,7 +20,7 @@ import aiohttp
 import websockets
 from unifi.core import RetryableError
 
-AVClientRequest = AVClientResponse = Dict[str, Any]
+AVClientRequest = AVClientResponse = dict[str, Any]
 
 
 class SmartDetectObjectType(Enum):
@@ -35,12 +35,12 @@ class UnifiCamBase(metaclass=ABCMeta):
 
         self._msg_id: int = 0
         self._init_time: float = time.time()
-        self._streams: Dict[str, str] = {}
+        self._streams: dict[str, str] = {}
         self._motion_snapshot: Optional[Path] = None
         self._motion_event_id: int = 0
         self._motion_event_ts: Optional[float] = None
         self._motion_object_type: Optional[SmartDetectObjectType] = None
-        self._ffmpeg_handles: Dict[str, subprocess.Popen] = {}
+        self._ffmpeg_handles: dict[str, subprocess.Popen] = {}
 
         # Set up ssl context for requests
         self._ssl_context = ssl.create_default_context()
@@ -86,7 +86,7 @@ class UnifiCamBase(metaclass=ABCMeta):
     async def run(self) -> None:
         pass
 
-    async def get_video_settings(self) -> Dict[str, Any]:
+    async def get_video_settings(self) -> dict[str, Any]:
         return {}
 
     async def change_video_settings(self, options) -> None:
@@ -103,7 +103,7 @@ class UnifiCamBase(metaclass=ABCMeta):
     def get_extra_ffmpeg_args(self, stream_index: str = "") -> str:
         return self.args.ffmpeg_args
 
-    async def get_feature_flags(self) -> Dict[str, Any]:
+    async def get_feature_flags(self) -> dict[str, Any]:
         return {
             "mic": True,
             "aec": [],
@@ -116,7 +116,7 @@ class UnifiCamBase(metaclass=ABCMeta):
         self, object_type: Optional[SmartDetectObjectType] = None
     ) -> None:
         if not self._motion_event_ts:
-            payload: Dict[str, Any] = {
+            payload: dict[str, Any] = {
                 "clockBestMonotonic": 0,
                 "clockBestWall": 0,
                 "clockMonotonic": int(self.get_uptime()),
@@ -168,7 +168,7 @@ class UnifiCamBase(metaclass=ABCMeta):
         motion_start_ts = self._motion_event_ts
         motion_object_type = self._motion_object_type
         if motion_start_ts:
-            payload: Dict[str, Any] = {
+            payload: dict[str, Any] = {
                 "clockBestMonotonic": int(self.get_uptime()),
                 "clockBestWall": int(round(motion_start_ts * 1000)),
                 "clockMonotonic": int(self.get_uptime()),
@@ -810,7 +810,7 @@ class UnifiCamBase(metaclass=ABCMeta):
         )
 
     def gen_response(
-        self, name: str, response_to: int = 0, payload: Optional[Dict[str, Any]] = None
+        self, name: str, response_to: int = 0, payload: Optional[dict[str, Any]] = None
     ) -> AVClientResponse:
         if not payload:
             payload = {}
@@ -920,7 +920,7 @@ class UnifiCamBase(metaclass=ABCMeta):
         return " ".join(base_args)
 
     async def start_video_stream(
-        self, stream_index: str, stream_name: str, destination: Tuple[str, int]
+        self, stream_index: str, stream_name: str, destination: tuple[str, int]
     ):
         has_spawned = stream_index in self._ffmpeg_handles
         is_dead = has_spawned and self._ffmpeg_handles[stream_index].poll() is not None
