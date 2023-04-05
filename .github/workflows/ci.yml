@@ -26,7 +26,6 @@ jobs:
         virtualenv venv
         source venv/bin/activate
         pip install -e .[test]
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Lint with flake8
       run: |
         source venv/bin/activate
