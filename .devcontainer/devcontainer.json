@@ -31,7 +31,13 @@
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
         "ms-python.python",
-    ]
+	],
+	"features": {
+		"ghcr.io/devcontainers/features/python:1": {
+			"installTools": true,
+			"version": "3.9"
+		}
+	}
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
