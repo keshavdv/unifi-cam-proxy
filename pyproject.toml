@@ -11,21 +11,7 @@ authors = [
     { name = "Keshav Varma", email = "keshavdv@gmail.com" },
 ]
 license = { text = "MIT" }
-dynamic = ["version", "readme"]
-dependencies = [
-    "amcrest",
-    "aiohttp",
-    "reolinkapi",
-    "packaging",
-    "asyncio-mqtt",
-    "backoff",
-    "coloredlogs",
-    "hikvisionapi>=0.3.2",
-    "websockets>=9.0.1",
-    "xmltodict",
-    "pyunifiprotect",
-    "flvlib3@git+https://github.com/zkonge/flvlib3.git",
-]
+dynamic = ["dependencies", "readme", "version"]
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.9",
@@ -68,8 +54,9 @@ package-dir = { "unifi" = "unifi" }
 
 
 [tool.setuptools.dynamic]
-version = { attr = "unifi.version.__version__" }
+dependencies = {file = ["requirements.txt"]}
 readme = { file = ["README.md"] }
+version = { attr = "unifi.version.__version__" }
 
 
 [tool.distutils.bdist_wheel]
