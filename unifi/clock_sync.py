@@ -67,7 +67,6 @@ def main(args):
     start = time.time()
     i = 0
     while True:
-
         # Packet structure from Wikipedia:
         #
         # Size of previous packet	uint32_be	0	For first packet set to NULL

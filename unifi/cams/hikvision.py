@@ -134,7 +134,6 @@ class HikvisionCam(UnifiCamBase):
                         and alert.get("channelID") == str(self.channel)
                         and alert.get("eventType") == "VMD"
                     ):
-
                         self._last_event_timestamp = alert.get("dateTime", time.time())
 
                         if self.motion_in_progress is False:

@@ -121,7 +121,6 @@ class DahuaCam(UnifiCamBase):
                 self.logger.error("Motion API request failed, retrying")
 
     async def get_stream_source(self, stream_index: str) -> str:
-
         if stream_index == "video1":
             subtype = self.args.main_stream
         else:

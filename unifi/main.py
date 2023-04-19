@@ -43,7 +43,9 @@ def parse_args():
         default="client.pem",
         help="Client certificate path",
     )
-    parser.add_argument("--token", "-t", required=False, default=None, help="Adoption token")
+    parser.add_argument(
+        "--token", "-t", required=False, default=None, help="Adoption token"
+    )
     parser.add_argument("--mac", "-m", default="AABBCCDDEEFF", help="MAC address")
     parser.add_argument(
         "--ip",
@@ -109,7 +111,7 @@ def parse_args():
         dest="impl",
         required=True,
     )
-    for (name, impl) in CAMS.items():
+    for name, impl in CAMS.items():
         subparser = sp.add_parser(name)
         impl.add_parser(subparser)
     return parser.parse_args()
@@ -117,12 +119,17 @@ def parse_args():
 
 async def generate_token(args, logger):
     try:
-        protect = ProtectApiClient(args.host, 443, args.nvr_username, args.nvr_password, verify_ssl=False)
+        protect = ProtectApiClient(
+            args.host, 443, args.nvr_username, args.nvr_password, verify_ssl=False
+        )
         await protect.update()
         response = await protect.api_request("cameras/manage-payload")
-        return response['mgmt']['token']
+        return response["mgmt"]["token"]
     except Exception:
-        logger.exception("Could not automatically fetch token, please see docs at https://unifi-cam-proxy.com/")
+        logger.exception(
+            "Could not automatically fetch token, please see docs at"
+            " https://unifi-cam-proxy.com/"
+        )
         return None
     finally:
         await protect.close_session()
@@ -133,13 +140,13 @@ async def run():
     klass = CAMS[args.impl]
 
     core_logger = logging.getLogger("Core")
-    logger = logging.getLogger(klass.__name__)
+    class_logger = logging.getLogger(klass.__name__)
 
     level = logging.INFO
     if args.verbose:
         level = logging.DEBUG
 
-    for logger in [core_logger, logger]:
+    for logger in [core_logger, class_logger]:
         coloredlogs.install(level=level, logger=logger)
 
     # Preflight checks

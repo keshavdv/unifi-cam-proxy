@@ -130,17 +130,17 @@ class Reolink(UnifiCamBase):
             fps = self.stream_fps[0]
         else:
             fps = self.stream_fps[1]
-        # return f'-ar 32000 -ac 1 -codec:a aac -b:a 32k -vf scale=-1:720 -flags:v +global_header -c:v libx264 -preset ultrafast -bsf:v dump_extra '
-        # return f'-ar 32000 -ac 1 -codec:a aac -b:a 32k -c:v copy -vbsf "h264_mp4toannexb"'
-        return f'-ar 32000 -ac 1 -codec:a aac -b:a 32k -c:v copy -vbsf "h264_metadata=tick_rate={fps*2}"'
+
+        return (
+            "-ar 32000 -ac 1 -codec:a aac -b:a 32k -c:v copy -vbsf"
+            f' "h264_metadata=tick_rate={fps*2}"'
+        )
 
     async def get_stream_source(self, stream_index: str) -> str:
         if stream_index == "video1":
             stream = self.args.stream
         else:
             stream = self.args.substream
-
-        # return f"rtmp://{self.args.ip}/bcs/channel0_main.bcs?channel=0&stream=0&user={self.args.username}&password={self.args.password}"
 
         return (
             f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}:554"
