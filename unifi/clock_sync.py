@@ -5,9 +5,10 @@ import argparse
 import struct
 import sys
 import time
+
 from flvlib3.astypes import FLVObject
-from flvlib3.tags import create_script_tag
 from flvlib3.primitives import make_ui8, make_ui32
+from flvlib3.tags import create_script_tag
 
 
 def read_bytes(source, num_bytes):

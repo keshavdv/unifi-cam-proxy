@@ -3,9 +3,9 @@ import asyncio
 import logging
 import sys
 from shutil import which
-from pyunifiprotect import ProtectApiClient
 
 import coloredlogs
+from pyunifiprotect import ProtectApiClient
 
 from unifi.cams import (
     DahuaCam,
@@ -147,4 +147,4 @@ def main():
 
 
 if __name__ == "__main__":
-   main()
+    main()
