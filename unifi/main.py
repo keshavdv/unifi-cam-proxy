@@ -61,9 +61,19 @@ def parse_args():
         "--model",
         default="UVC G3",
         choices=[
+            "UVC",
+            "UVC AI 360",
+            "UVC AI Bullet",
+            "UVC AI THETA",
+            "UVC AI DSLR",
+            "UVC Pro",
+            "UVC Dome",
+            "UVC Micro",
             "UVC G3",
+            "UVC G3 Battery",
             "UVC G3 Dome",
             "UVC G3 Micro",
+            "UVC G3 Mini",
             "UVC G3 Instant",
             "UVC G3 Pro",
             "UVC G3 Flex",
@@ -71,7 +81,16 @@ def parse_args():
             "UVC G4 Pro",
             "UVC G4 PTZ",
             "UVC G4 Doorbell",
+            "UVC G4 Doorbell Pro",
+            "UVC G4 Doorbell Pro PoE",
             "UVC G4 Dome",
+            "UVC G4 Instant",
+            "UVC G5 Bullet",
+            "UVC G5 Dome",
+            "UVC G5 Flex",
+            "UVC G5 Pro",
+            "AFi VC",
+            "Vision Pro",
         ],
         help="Hardware model to identify as",
     )
@@ -103,7 +122,7 @@ async def generate_token(args, logger):
         response = await protect.api_request("cameras/manage-payload")
         return response['mgmt']['token']
     except Exception:
-        logger.warn("Could not automatically fetch token, please see docs at https://unifi-cam-proxy.com/")
+        logger.exception("Could not automatically fetch token, please see docs at https://unifi-cam-proxy.com/")
         return None
     finally:
         await protect.close_session()

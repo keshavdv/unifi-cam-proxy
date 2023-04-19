@@ -383,7 +383,7 @@ class UnifiCamBase(metaclass=ABCMeta):
                     "quality": 0,
                     "sampleRate": 11025,
                     "type": "aac",
-                    "volume": 100,
+                    "volume": 0,
                 },
                 "firmwarePath": "/lib/firmware/",
                 "video": {
