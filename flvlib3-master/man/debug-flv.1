@@ -1,0 +1,32 @@
+.TH DEBUG-FLV "1" "January 2009" "debug-flv" "User Commands"
+.SH NAME
+debug-flv \- get information about an FLV file
+.SH SYNOPSIS
+.B debug-flv
+[\fIoptions\fR] \fIfiles \fR...
+.SH DESCRIPTION
+Checks FLV files for comformance with the FLV specification. Outputs a list of
+tags and, if present, the content of the onMetaData script tag.
+.SH OPTIONS
+.TP
+\fB\-\-version\fR
+show program's version number and exit
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+show this help message and exit
+.TP
+\fB\-s\fR, \fB\-\-strict\fR
+be strict while parsing the FLV file
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+do not output anything unless there are errors
+.TP
+\fB\-m\fR, \fB\-\-metadata\fR
+exit immediately after printing an onMetaData tag
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+be more verbose, each \fB\-v\fR increases verbosity
+.SH AUTHOR
+Written by Jan Urbanski <wulczer@wulczer.org>
+.SH "SEE ALSO"
+index-flv(1) retimestamp-flv(1)

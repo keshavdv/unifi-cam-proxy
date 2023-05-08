@@ -7,6 +7,8 @@ services:
       context: unifi-cam-proxy/docs
       dockerfile: ./Dockerfile
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
     ports:
       - 35539:35539
+      - 9229:9229
+    command: ["node", "--inspect=0.0.0.0:9229", "index.js"]

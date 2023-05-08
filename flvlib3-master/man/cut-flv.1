@@ -1,0 +1,32 @@
+.TH CUT-FLV "1" "February 2019" "cut-flv" "User Commands"
+.SH NAME
+cut-flv \- cut out part of a FLV file
+.SH SYNOPSIS
+.B cut-flv
+[options] \fIin_file \fIout_file
+.SH DESCRIPTION
+Cut out part of a FLV file. Start and end times are
+timestamps that will be compared to the timestamps
+of tags from inside the file. Tags from outside of the
+start/end range will be discarded, taking care to always
+start the new file with a keyframe.
+.SH OPTIONS
+.TP
+\fB\-\-version\fR
+show program's version number and exit
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+show this help message and exit
+.TP
+\fB\-s\fR, \fB\-\-start\-time\fR
+start time to cut from (millisecond)
+.TP
+\fB\-e\fR, \fB\-\-end\-time\fR
+end time to cut to (millisecond)
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+be more verbose, each \fB\-v\fR increases verbosity
+.SH AUTHOR
+Written by zkonge <zkonge@outlook.com>
+.SH "SEE ALSO"
+debug-flv(1) index-flv(1) retimestamp-flv(1)

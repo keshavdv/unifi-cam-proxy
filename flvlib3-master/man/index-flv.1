@@ -1,0 +1,40 @@
+.TH INDEX-FLV "1" "January 2009" "index-flv" "User Commands"
+.SH NAME
+index-flv \- add keyframe information to an FLV file
+.SH SYNOPSIS
+.B index-flv
+[\fI-U\fR [\fI-r\fR|\fI-R\fR]] \fIfile \fR[\fIoutfile|file2 file3 \fR...]
+.SH DESCRIPTION
+Finds keyframe timestamps and file offsets in FLV files and updates the
+onMetaData script tag with that information. With the \fB\-U\fR (update) option
+operates on all parameters, updating the files in place. Without the \fB\-U\fR option
+accepts one input and one output file path. The \fB\-r\fR and \fB\-R\fR options
+are useful for indexing capture file of live streamed content. Such files will
+usually have timestamps starting at some large value and this can confuse the
+duration detection logic of \fBindex\-flv\fR.
+.SH OPTIONS
+.TP
+\fB\-\-version\fR
+show program's version number and exit
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+show this help message and exit
+.TP
+\fB\-U\fR, \fB\-\-update\fR
+update mode, overwrites the given files instead of writing to
+outfile
+.TP
+\fB\-r\fR, \fB\-\-retimestamp\fR
+rewrite timestamps in the files before indexing, identical to running
+\fBretimestamp\-flv\fR first
+.TP
+\fB\-R\fR, \fB\-\-retimestamp-inplace\fR
+same as \fB\-r\fR but avoid creating temporary files at the risk of corrupting
+the input files in case of errors
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+be more verbose, each \fB\-v\fR increases verbosity
+.SH AUTHOR
+Written by Jan Urbanski <wulczer@wulczer.org>
+.SH "SEE ALSO"
+debug-flv(1) retimestamp-flv(1) cut-flv(1)

@@ -1,0 +1,33 @@
+.TH DEBUG-FLV "1" "January 2009" "retimestamp-flv" "User Commands"
+.SH NAME
+retimestamp-flv \- change timestamps in an FLV file
+.SH SYNOPSIS
+.B retimestamp-flv
+[\fIoptions\fR] \fIfiles \fR...
+.SH DESCRIPTION
+Rewrites timestamps in FLV files making by the first media tag timestamped with
+0. The rest of the tags is retimestamped relatively. If the file contained an
+index in the onMetaData script tag, the retimestamping will probably make it
+invalid. Be sure to reindex your files after retimestamping them.
+.SH OPTIONS
+.TP
+\fB\-\-version\fR
+show program's version number and exit
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+show this help message and exit
+.TP
+\fB\-U\fR, \fB\-\-update\fR
+update mode, overwrites the given files instead of writing to
+outfile
+.TP
+\fB\-i\fR, \fB\-\-inplace\fR
+modify the file without creating temporary copies, at the risk of producing
+corrupted output in case of errors or interrupted execution
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+be more verbose, each \fB\-v\fR increases verbosity
+.SH AUTHOR
+Written by Jan Urbanski <wulczer@wulczer.org>
+.SH "SEE ALSO"
+index-flv(1) update-flv(1)
