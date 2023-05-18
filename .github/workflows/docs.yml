@@ -1,4 +1,4 @@
-name: 📚 Deploy Documnentation
+name: 📚 Deploy Documentation
 
 on:
   push:
