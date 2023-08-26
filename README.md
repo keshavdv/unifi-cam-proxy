@@ -18,6 +18,9 @@ Things that work:
 
 View the documentation at https://unifi-cam-proxy.com
 
+The documentation is not up to date about the Adoption Token
+You can find the adoption token to use on the url https://{NVR IP}/proxy/protect/api/cameras/manage-payload
+
 ## Donations
 
 If you would like to make a donation to support development, please use [Github Sponsors](https://github.com/sponsors/keshavdv).
