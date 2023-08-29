@@ -27,12 +27,7 @@ rm -f /tmp/private.key /tmp/public.key /tmp/server.csr
 ### Adoption Token
 In order to add a camera to Protect, you must first generate an adoption token. The token is only valid for 60 minutes so you'll need to re-generate a new one if it expires during your initial setup.
 
-1. On the Protect UI, click 'Add Devices' and select 'G3 Micro'. Select 'Continue on Web' and type in a random string for the SSID and Password fields and click 'Generate QR Code'.
-   * If you do not see this button, manually go to one of the following (replace the {NVR_IP} with the local gateway IP address):
-       * **Older devices:** https://{NVR IP}/protect/devices/add
-       * **Newer devices:** https://{NVR IP}/proxy/protect/api/cameras/qr 
-2. Take a screenshot of the QR code and upload it to https://zxing.org/w/decode.jspx
-3. Decode the QR code and extract the token from the second to last line in the 'Raw Text' field.
+Open https://{NVR IP}/proxy/protect/api/cameras/manage-payload and copy the token field.
 
 ## Docker
 Using Docker is the recommended installation method. The sample docker-compose file below is the recommended deployment for most users. Note that the certificate generated in the previous step must be in the same directory as the docker-compose.yaml file.
