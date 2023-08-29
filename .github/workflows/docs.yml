@@ -18,10 +18,10 @@ jobs:
     
       - name: 🔵 Setup NodeJS
         uses: actions/setup-node@v3
-        working-directory: docs
         with:
           node-version: 16
           cache: yarn
+          cache-dependency-path: ./docs/yarn.lock
     
       - name: ⏬ Install Dependencies
         run: yarn install --frozen-lockfile
