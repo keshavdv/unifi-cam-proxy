@@ -2,8 +2,14 @@ name: Test
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - docs/**
+      - .github/workflows/docs.yml
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - docs/**
+      - .github/workflows/docs.yml
 
   workflow_dispatch:
 
