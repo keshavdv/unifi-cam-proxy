@@ -1,0 +1,39 @@
+name: 📚 Deploy Documentation
+
+on:
+  push:
+    paths:
+      - docs/**
+      - .github/workflows/docs.yml
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📂 Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+    
+      - name: 🔵 Setup NodeJS
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: yarn
+    
+      - name: ⏬ Install Dependencies
+        run: yarn install --frozen-lockfile
+        working-directory: docs
+
+      - name: 🏗 Build
+        run: yarn build
+        working-directory: docs
+
+      - name: 🚀 Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/build
+          cname: unifi-cam-proxy.com
+        if: github.ref == 'refs/heads/main'
