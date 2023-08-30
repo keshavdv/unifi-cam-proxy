@@ -36,3 +36,13 @@ repos:
     rev: 6.1.0
     hooks:
       - id: flake8
+
+  - repo: local
+    hooks:
+      - id: pyre
+        name: pyre
+        entry: pyre check
+        pass_filenames: false
+        language: python
+        types:
+          - python
