@@ -4,15 +4,17 @@ sidebar_position: 3
 
 # Hikvision
 
-### Generic
+## Generic
+
 If your camera model is not listed specifically below, try the following:
 
-```
+```sh
 unifi-cam-proxy -H {NVR IP} -i {camera IP} -c /client.pem -t {Adoption token} hikvision -u {username} -p {password}
 ```
 
-### Options
-```
+## Options
+
+```text
 optional arguments:
   --ffmpeg-args FFMPEG_ARGS, -f FFMPEG_ARGS
                         Transcoding args for `ffmpeg -i <src> <args> <dst>`
@@ -24,13 +26,15 @@ optional arguments:
                         Camera password
 ```
 
+## Hikvision DS-2DE3304W-DE
 
-### Hikvision DS-2DE3304W-DE
 - [x] Supports full time recording
 - [ ] Supports motion events
 - [ ] Supports smart detection
 - Notes:
-  * Change Pan/Tilt/Zoom via brightness/saturation/hue camera setting
-```
-unifi-cam-proxy --mac '{unique MAC}' -H {NVR IP} -i {camera IP} -c /client.pem -t {Adoption token} hikvision -u {username} -p {password}
+  - Change Pan/Tilt/Zoom via brightness/saturation/hue camera setting
+
+```sh
+unifi-cam-proxy --mac '{unique MAC}' -H {NVR IP} -i {camera IP} -c /client.pem -t {Adoption token} \
+    hikvision -u {username} -p {password}
 ```

@@ -4,25 +4,23 @@ sidebar_position: 2
 
 # Frigate
 
-
 If your camera model is not listed specifically below, try the following:
 
 - [x] Supports full time recording
 - [ ] Supports motion events
 - [x] Supports smart detection
 
-
-```
+```sh
 unifi-cam-proxy --mac '{unique MAC}' -H {NVR IP} -i {camera IP} -c /client.pem -t {Adoption token} \
-  frigate \
-  -s {rtsp source} \
-  --mqtt-host {mqtt host} \
-  --frigate-camera {Name of camera in frigate}
+    frigate \
+    -s {rtsp source} \
+    --mqtt-host {mqtt host} \
+    --frigate-camera {Name of camera in frigate}
 ```
 
 ## Options
 
-```
+```text
 optional arguments:
   --ffmpeg-args FFMPEG_ARGS, -f FFMPEG_ARGS
                         Transcoding args for `ffmpeg -i <src> <args> <dst>`
@@ -42,4 +40,3 @@ optional arguments:
   --frigate-camera FRIGATE_CAMERA
                         Name of camera in frigate
 ```
-

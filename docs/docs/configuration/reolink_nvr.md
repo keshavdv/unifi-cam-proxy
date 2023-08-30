@@ -4,9 +4,9 @@ sidebar_position: 5
 
 # Reolink NVR
 
+## Options
 
-### Options
-```
+```text
 optional arguments:
   -h, --help            show this help message and exit
   --ffmpeg-args FFMPEG_ARGS, -f FFMPEG_ARGS
@@ -19,16 +19,17 @@ optional arguments:
                         NVR password
   --channel CHANNEL, -c CHANNEL
                         NVR camera channel
-```                        
-
+```  
 
 ## NVR (Reolink RLN16-410)
+
 - [x] Supports full time recording
 - [x] Supports motion events
 - [ ] Supports smart detection
 - Notes:
-  * Camera/channel IDs are zero-based
-```
+  - Camera/channel IDs are zero-based
+
+```sh
 unifi-cam-proxy --mac '{unique MAC}' -H {Protect IP} -i {Reolink NVR IP} -c /client.pem -t {Adoption token} \
     reolink_nvr \
     -u {username} \
