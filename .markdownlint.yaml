@@ -1,0 +1,8 @@
+default: true
+
+# line-length
+MD013:
+  line_length: 100
+  code_block_line_length: 120
+
+MD041: false

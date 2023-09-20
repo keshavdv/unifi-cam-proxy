@@ -1,6 +1,6 @@
 name: Bug report
 description: Create a bug report to help us improve
-labels: 
+labels:
   - "Type: Bug"
   - "Status: Waiting triage"
 body:
@@ -9,11 +9,11 @@ body:
       value: |
         # :warning: **Please read before raising the issue** :warning:
 
-        If you have a **question**, need clarification on something, need help on a particular situation or want to start a discussion, **DO NOT** open an issue here. _It will be automatically closed!_ 
-        
-        Ask the question on one of our [Discord channels](https://discord.gg/Bxk9uGT6MW) 
+        If you have a **question**, need clarification on something, need help on a particular situation or want to start a discussion, **DO NOT** open an issue here. _It will be automatically closed!_
+
+        Ask the question on one of our [Discord channels](https://discord.gg/Bxk9uGT6MW)
         If you're not keen to Discord, you can also use [GitHub Discussions](https://github.com/keshavdv/unifi-cam-proxy/discussions).
-        If you realy want to raise an issue, please make sure to follow the template and provide the required information. Failing to do so will most likely end up on the issue being close. Don't take offense at this. It is simply a time management decision. Whenever an issue is raised without following the template and the required information is not provided, very often too much time has to be spent going back and forth to obtain the details that are outlined below.
+        If you really want to raise an issue, please make sure to follow the template and provide the required information. Failing to do so will most likely end up on the issue being close. Don't take offense at this. It is simply a time management decision. Whenever an issue is raised without following the template and the required information is not provided, very often too much time has to be spent going back and forth to obtain the details that are outlined below.
 
   - type: input
     id: camera_model
@@ -73,7 +73,7 @@ body:
   - type: textarea
     id: other_things
     attributes:
-      label: Aditional information
+      label: Additional information
       description: Other suggested things. If applicable/relevant.
       placeholder: |
         for example link to the repository with sample code
@@ -85,5 +85,5 @@ body:
     attributes:
       value: |
         ### Make an effort to fix the bug
-        
+
         Attempt to submit a [Pull Request (PR)](https://help.github.com/articles/about-pull-requests/) that fixes the bug. Include in this PR a test that verifies the fix. If you were not able to fix the bug, a PR that illustrates your partial progress will suffice.

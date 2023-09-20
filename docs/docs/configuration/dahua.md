@@ -4,8 +4,9 @@ sidebar_position: 3
 
 # Dahua/Lorex
 
-### Options
-```
+## Options
+
+```text
 optional arguments:
   --ffmpeg-args FFMPEG_ARGS, -f FFMPEG_ARGS
                         Transcoding args for `ffmpeg -i <src> <args> <dst>`
@@ -27,14 +28,13 @@ optional arguments:
                         VideoMotion event index
 ```
 
-
-### Lorex LNB4321B
-
+## Lorex LNB4321B
 
 - [x] Supports full time recording
 - [x] Supports motion events
 - [ ] Supports smart detection
-```
+
+```sh
 unifi-cam-proxy --mac '{unique MAC}' -H {NVR IP} -i {camera IP} -c /client.pem -t {Adoption token} \
     dahua \
     -u {username} \

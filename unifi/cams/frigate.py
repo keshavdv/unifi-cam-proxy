@@ -102,7 +102,7 @@ class FrigateCam(RTSPCam):
                     object_type = self.label_to_object_type(label)
                     if not object_type:
                         self.logger.warning(
-                            f"Received unsupport detection label type: {label}"
+                            f"Received unsupported detection label type: {label}"
                         )
 
                     if not self.event_id and frigate_msg["type"] == "new":

@@ -5,6 +5,7 @@ on:
     paths-ignore:
       - docs/**
       - .github/workflows/docs.yml
+
   pull_request:
     branches: [ main ]
     paths-ignore:
@@ -16,31 +17,23 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         python-version: [3.9]
 
     steps:
     - uses: actions/checkout@v3
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+        cache: pip
+        cache-dependency-path: pyproject.toml
+
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip virtualenv
-        virtualenv venv
-        source venv/bin/activate
-        pip install -e .[test]
-    - name: Lint with flake8
-      run: |
-        source venv/bin/activate
-        flake8 --show-source --statistics
-    - name: Check imports with isort
-      run: |
-        source venv/bin/activate
-        isort . --check-only --diff
-    - name: Run Pyre
-      run: |
-        source venv/bin/activate
-        pyre check
+      run: pip install -e .[test]
+
+    - name: Lint with pre-commit
+      run: pre-commit run --all-files
