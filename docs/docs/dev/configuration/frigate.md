@@ -15,6 +15,8 @@ unifi-cam-proxy --mac '{unique MAC}' -H {NVR IP} -i {camera IP} -c /client.pem -
     frigate \
     -s {rtsp source} \
     --mqtt-host {mqtt host} \
+    --mqtt-username {mqtt username} \
+    --mqtt-password {mqtt password} \
     --frigate-camera {Name of camera in frigate}
 ```
 
@@ -35,6 +37,10 @@ optional arguments:
                         MQTT server
   --mqtt-port MQTT_PORT
                         MQTT port
+  --mqtt-username MQTT_USERNAME
+                        MQTT username
+  --mqtt-password MQTT_PASSWORD
+                        MQTT password
   --mqtt-prefix MQTT_PREFIX
                         Topic prefix
   --frigate-camera FRIGATE_CAMERA
