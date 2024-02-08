@@ -5,7 +5,7 @@ sidebar_position: 1
 # Tapo
 Unifi-cam-proxy has basic support for Tapo/TPlink cameras, like the C100 or C200 with PTZ. 
 
-To controll the PTZ functionality, you have to use the camera image settings in unifi. Adjusting the contrast to anything less than 20 pans the camera a bit to the left, anything over 80 to the right. The brightness setting controlls the tilt.
+To control the PTZ functionality, you have to use the camera image settings in unifi. Adjusting the contrast to anything less than 20 pans the camera a bit to the left, anything over 80 to the right. The brightness setting controls the tilt.
 
 Make sure to reset the brightness/contrast setting back to somewhere around 50 after adjusting the cameras position, to avoid adjusting the position by accident.
 
