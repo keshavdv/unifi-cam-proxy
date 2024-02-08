@@ -14,6 +14,7 @@ from unifi.cams import (
     Reolink,
     ReolinkNVRCam,
     RTSPCam,
+    TapoCam,
 )
 from unifi.core import Core
 from unifi.version import __version__
@@ -27,6 +28,7 @@ CAMS = {
     "reolink": Reolink,
     "reolink_nvr": ReolinkNVRCam,
     "rtsp": RTSPCam,
+    "tapo": TapoCam,
 }
 
 
@@ -51,7 +53,7 @@ def parse_args():
         "--ip",
         "-i",
         default="192.168.1.10",
-        help="IP address of camera (only used to display in UI)",
+        help="IP address of camera (only used to display in UI and to connect Tapo/hikvision Cameras)",
     )
     parser.add_argument(
         "--name",
