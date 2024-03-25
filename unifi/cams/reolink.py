@@ -8,7 +8,7 @@ import aiohttp
 import reolinkapi
 from yarl import URL
 
-from unifi.cams.base import UnifiCamBase
+from unifi.cams.base import UnifiCamBase, SmartDetectObjectType
 
 
 class Reolink(UnifiCamBase):
@@ -76,16 +76,16 @@ class Reolink(UnifiCamBase):
     async def run(self) -> None:
         url = (
             f"http://{self.args.ip}"
-            f"/api.cgi?cmd=GetMdState&user={self.args.username}"
+            f"/api.cgi?cmd=GetAiState&user={self.args.username}"
             f"&password={self.args.password}"
         )
         encoded_url = URL(url, encoded=True)
 
         body = (
-            f'[{{ "cmd":"GetMdState", "param":{{ "channel":{self.args.channel} }} }}]'
+            f'[{{ "cmd":"GetAiState", "param":{{ "channel":{self.args.channel} }} }}]'
         )
         while True:
-            self.logger.info(f"Connecting to motion events API: {url}")
+            self.logger.info(f"Connecting to AI person motion events API: {url}")
             try:
                 async with aiohttp.ClientSession(
                     timeout=aiohttp.ClientTimeout(None)
@@ -97,12 +97,12 @@ class Reolink(UnifiCamBase):
                             try:
                                 json_body = json.loads(data)
                                 if "value" in json_body[0]:
-                                    if json_body[0]["value"]["state"] == 1:
+                                    if json_body[0]["value"]["people"]["alarm_state"] == 1:
                                         if not self.motion_in_progress:
                                             self.motion_in_progress = True
                                             self.logger.info("Trigger motion start")
-                                            await self.trigger_motion_start()
-                                    elif json_body[0]["value"]["state"] == 0:
+                                            await self.trigger_motion_start(SmartDetectObjectType.PERSON)
+                                    elif json_body[0]["value"]["people"]["alarm_state"] == 0:
                                         if self.motion_in_progress:
                                             self.motion_in_progress = False
                                             self.logger.info("Trigger motion end")
